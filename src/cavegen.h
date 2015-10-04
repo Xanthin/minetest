@@ -26,6 +26,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 class MapgenV5;
 class MapgenV6;
 class MapgenV7;
+class MapgenValleys;
 
 class CaveV5 {
 public:
@@ -116,9 +117,10 @@ public:
 	void carveRoute(v3f vec, float f, bool randomize_xz, bool tunnel_above_ground);
 };
 
-class CaveV7 {
+template<class T>
+class CaveV7plus {
 public:
-	MapgenV7 *mg;
+	T *mg;
 	MMVManip *vm;
 	INodeDefManager *ndef;
 
@@ -154,11 +156,16 @@ public:
 
 	int water_level;
 
-	CaveV7() {}
-	CaveV7(MapgenV7 *mg, PseudoRandom *ps);
+	CaveV7plus() {}
+	CaveV7plus(T *mg, PseudoRandom *ps);
 	void makeCave(v3s16 nmin, v3s16 nmax, int max_stone_height);
 	void makeTunnel(bool dirswitch);
 	void carveRoute(v3f vec, float f, bool randomize_xz);
 };
+
+template class CaveV7plus<MapgenV7>;
+template class CaveV7plus<MapgenValleys>;
+typedef CaveV7plus<MapgenV7> CaveV7;
+typedef CaveV7plus<MapgenValleys> CaveValleys;
 
 #endif

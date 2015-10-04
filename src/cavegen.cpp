@@ -23,6 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "mapgen_v5.h"
 #include "mapgen_v6.h"
 #include "mapgen_v7.h"
+#include "mapgen_valleys.h"
 #include "cavegen.h"
 
 NoiseParams nparams_caveliquids(0, 1, v3f(150.0, 150.0, 150.0), 776, 3, 0.6, 2.0);
@@ -564,10 +565,11 @@ void CaveV6::carveRoute(v3f vec, float f, bool randomize_xz, bool tunnel_above_g
 }
 
 
-///////////////////////////////////////// Caves V7
+///////////////////////////////////////// Caves V7 and Valleys
 
 
-CaveV7::CaveV7(MapgenV7 *mg, PseudoRandom *ps)
+template<class T>
+CaveV7plus<T>::CaveV7plus(T *mg, PseudoRandom *ps)
 {
 	this->mg             = mg;
 	this->vm             = mg->vm;
@@ -591,7 +593,8 @@ CaveV7::CaveV7(MapgenV7 *mg, PseudoRandom *ps)
 }
 
 
-void CaveV7::makeCave(v3s16 nmin, v3s16 nmax, int max_stone_height)
+template<class T>
+void CaveV7plus<T>::makeCave(v3s16 nmin, v3s16 nmax, int max_stone_height)
 {
 	node_min = nmin;
 	node_max = nmax;
@@ -654,7 +657,8 @@ void CaveV7::makeCave(v3s16 nmin, v3s16 nmax, int max_stone_height)
 }
 
 
-void CaveV7::makeTunnel(bool dirswitch)
+template<class T>
+void CaveV7plus<T>::makeTunnel(bool dirswitch)
 {
 	// Randomize size
 	s16 min_d = min_tunnel_diameter;
@@ -740,7 +744,8 @@ void CaveV7::makeTunnel(bool dirswitch)
 }
 
 
-void CaveV7::carveRoute(v3f vec, float f, bool randomize_xz)
+template<class T>
+void CaveV7plus<T>::carveRoute(v3f vec, float f, bool randomize_xz)
 {
 	MapNode airnode(CONTENT_AIR);
 	MapNode waternode(c_water_source);
@@ -807,3 +812,4 @@ void CaveV7::carveRoute(v3f vec, float f, bool randomize_xz)
 		}
 	}
 }
+

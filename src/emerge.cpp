@@ -45,6 +45,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "mapgen_v5.h"
 #include "mapgen_v6.h"
 #include "mapgen_v7.h"
+#include "mapgen_valleys.h"
 #include "mapgen_singlenode.h"
 
 struct MapgenDesc {
@@ -56,6 +57,7 @@ MapgenDesc reg_mapgens[] = {
 	{"v5",         new MapgenFactoryV5},
 	{"v6",         new MapgenFactoryV6},
 	{"v7",         new MapgenFactoryV7},
+	{"valleys",    new MapgenFactoryValleys},
 	{"singlenode", new MapgenFactorySinglenode},
 };
 
