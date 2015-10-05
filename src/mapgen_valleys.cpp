@@ -76,7 +76,7 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 	this->humidmap        = NULL;
 
 	// This is only here for compatibility with v7 caves.
-	this->ridge_heightmap = new s16[csize.X * csize.Z];
+	this->ridge_heightmap = this->heightmap;
 
 	MapgenValleysParams *sp = (MapgenValleysParams *)params->sparams;
 	this->spflags = sp->spflags;
@@ -342,7 +342,7 @@ void MapgenValleys::makeChunk(BlockMakeData *data)
 
 	blockseed = getBlockSeed2(full_node_min, seed);
 
-	// Make some noise
+	// Generate noise maps and base terrain height.
 	calculateNoise();
 
 	// Generate base terrain with initial heightmaps
@@ -451,7 +451,7 @@ void MapgenValleys::fixRivers(s16 sx, s16 sy, s16 *height_map)
 	s16 index = 0;
 	for (s16 z = node_min.Z; z <= node_max.Z; z++)
 		for (s16 x = node_min.X; x <= node_max.X; x++, index++) {
-			float river_y = noise_rivers->result[index];
+			s16 river_y = (s16) noise_rivers->result[index];
 			if (river_y > 0 && river_y >= node_min.Y && river_y <= node_max.Y) {
 				// Try to eliminate rivers floating over cave openings.
 				bool supported = false;
@@ -707,13 +707,6 @@ float MapgenValleys::baseTerrainLevelAtPoint(s16 x, s16 z)
 }
 
 
-float MapgenValleys::baseTerrainLevelFromMap(int index, float *river_y)
-{
-	*river_y = noise_rivers->result[index];
-	return noise_terrain_height->result[index];
-}
-
-
 int MapgenValleys::generateTerrain()
 {
 	MapNode n_air(CONTENT_AIR);
@@ -729,9 +722,8 @@ int MapgenValleys::generateTerrain()
 
 	for (s16 z = node_min.Z; z <= node_max.Z; z++)
 	for (s16 x = node_min.X; x <= node_max.X; x++, index++) {
-		float river_y = -31000;
-		float surface_height = baseTerrainLevelFromMap(index, &river_y);
-		s16 surface_y = (s16)surface_height;
+		s16 river_y = (s16) noise_rivers->result[index];
+		s16 surface_y = (s16) noise_terrain_height->result[index];
 
 		heightmap[index] = surface_y;
 
@@ -745,16 +737,17 @@ int MapgenValleys::generateTerrain()
 		u32 i = vm->m_area.index(x, node_min.Y - 1, z);
 		for (s16 y = node_min.Y - 1; y <= node_max.Y + 1; y++) {
 			if (vm->m_data[i].getContent() == CONTENT_IGNORE) {
-				if (y <= surface_y)
-					vm->m_data[i] = n_stone;
-				else if (river_y > surface_y && y == surface_y + 1)
+				if (river_y > surface_y && y == surface_y)
 					// river bottom
 					vm->m_data[i] = n_sand;
-				else if (river_y > surface_y && y < river_y)
-					// a river
+				else if (y <= surface_y)
+					// ground
+					vm->m_data[i] = n_stone;
+				else if (river_y > surface_y && y <= river_y)
+					// river
 					vm->m_data[i] = n_river_water;
 				else if (y <= water_level)
-					// a sea
+					// sea
 					vm->m_data[i] = n_water;
 				else
 					vm->m_data[i] = n_air;
