@@ -100,7 +100,6 @@ public:
 	v3s16 full_node_max;
 
 	s16 *ridge_heightmap;
-	s16 *valleymap;
 
 	Noise *noise_filler_depth;
 
@@ -164,14 +163,13 @@ public:
 	float baseTerrainLevelAtPoint(s16 x, s16 z);
 	float baseTerrainLevelFromMap(int index, float *river_y);
 
-	void calcBiomes(s16 sx, s16 sy, float *heat_map, float *humidity_map, s16 *height_map, s16 *valley_map, u8 *biomeid_map);
+	void calcBiomes(s16 sx, s16 sy, float *heat_map, float *humidity_map, s16 *height_map, u8 *biomeid_map);
 
 	void calculateNoise();
 
 	virtual int generateTerrain();
-	void generateBaseTerrain(s16 *stone_surface_min_y, s16 *stone_surface_max_y);
 	float baseGroundFromNoise(s16 x, s16 z, float valley_depth, float terrain_height, float *rivers, float valley_profile, float inter_valley_slope, float *valley);
-	float humidityFromNoise(float humidity, float mount, float valley);
+	float humidityByTerrain(float humidity, float mount, float valley);
 
 	MgStoneType generateBiomes(float *heat_map, float *humidity_map);
 	void fixRivers(s16 sx, s16 sy, s16 *height_map);

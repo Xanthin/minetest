@@ -72,7 +72,6 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 
 	this->biomemap        = new u8[csize.X * csize.Z];
 	this->heightmap       = new s16[csize.X * csize.Z];
-	this->valleymap       = new s16[csize.X * csize.Z];
 	this->heatmap         = NULL;
 	this->humidmap        = NULL;
 
@@ -349,12 +348,8 @@ void MapgenValleys::makeChunk(BlockMakeData *data)
 	// Generate base terrain with initial heightmaps
 	s16 stone_surface_max_y = generateTerrain();
 
-	// This is crap. It returns unusable results. How is that better
-	//  than an approximate map that has usable results?
-	//updateHeightmap(node_min, node_max);
-
 	// Create biomemap at heightmap surface
-	calcBiomes(csize.X, csize.Z, heatmap, humidmap, heightmap, valleymap, biomemap);
+	calcBiomes(csize.X, csize.Z, heatmap, humidmap, heightmap, biomemap);
 
 	// Actually place the biome-specific nodes
 	MgStoneType stone_type = generateBiomes(heatmap, humidmap);
@@ -409,7 +404,7 @@ void MapgenValleys::makeChunk(BlockMakeData *data)
 		dgen.generate(blockseed, full_node_min, full_node_max);
 	}
 
-	// Reduce the rivers where they'd overflow.
+	// Correct problems with the rivers.
 	fixRivers(csize.X, csize.Z, heightmap);
 
 	// Generate the registered decorations
@@ -429,9 +424,6 @@ void MapgenValleys::makeChunk(BlockMakeData *data)
 		calcLighting(node_min - v3s16(0, 1, 0), node_max + v3s16(0, 1, 0),
 			full_node_min, full_node_max);
 
-	//setLighting(node_min - v3s16(1, 0, 1) * MAP_BLOCKSIZE,
-	//			node_max + v3s16(1, 0, 1) * MAP_BLOCKSIZE, 0xFF);
-
 	if (MG_VALLEYS_PROFILE)
 		printf("liquid_lighting: %dms\n", tll.stop());
 
@@ -442,16 +434,11 @@ void MapgenValleys::makeChunk(BlockMakeData *data)
 }
 
 
-void MapgenValleys::calcBiomes(s16 sx, s16 sy, float *heat_map, float *humidity_map, s16 *height_map, s16 *valley_map, u8 *biomeid_map)
+void MapgenValleys::calcBiomes(s16 sx, s16 sy, float *heat_map, float *humidity_map, s16 *height_map, u8 *biomeid_map)
 {
-	float heat;
-
 	for (s32 index = 0; index < sx * sy; index++) {
-		heat = heat_map[index];
-		if (height_map[index] > 0)
-			heat = heat - altitude_chill * (height_map[index] - 20);
-		humidityFromNoise(humidity_map[index], height_map[index], valley_map[index]);
-		Biome *biome = bmgr->getBiome(heat, humidity_map[index], height_map[index]);
+		// Both heat and humidity have already been adjusted for altitude.
+		Biome *biome = bmgr->getBiome(heat_map[index], humidity_map[index], height_map[index]);
 		biomeid_map[index] = biome->index;
 	}
 }
@@ -581,12 +568,17 @@ void MapgenValleys::calculateNoise()
 		// The two parameters that we actually need to generate terrain
 		//  are terrain height and river noise.
 		mount = baseGroundFromNoise(xi, zi, valley_depth, terrain_height, &rivers, valley_profile, inter_valley_slope, &valley);
-		valleymap[index] = valley;
 		noise_terrain_height->result[index] = mount;
 		noise_rivers->result[index] = rivers;
 
-		// Something's wrong with the default beach generation.
-		noise_humidity->result[index] = humidityFromNoise(noise_humidity->result[index], mount, valley);
+		// Assign the humidity adjusted by water proximity (and thus altitude).
+		// I can't think of a reason why a mod would expect base humidity
+		//  from noise or at any altitude other than ground level.
+		noise_humidity->result[index] = humidityByTerrain(noise_humidity->result[index], mount, valley);
+
+		// Assign the heat adjusted by altitude. See humidity, above.
+		if (mount > 0)
+			noise_heat->result[index] -= altitude_chill * mount;
 	}
 
 	heatmap = noise_heat->result;
@@ -656,7 +648,7 @@ float MapgenValleys::baseGroundFromNoise(s16 x, s16 z, float valley_depth, float
 }
 
 
-float MapgenValleys::humidityFromNoise(float humidity, float mount, float valley)
+float MapgenValleys::humidityByTerrain(float humidity, float mount, float valley)
 {
 	humidity += humidity_adjust;
 	if (mount > water_level) {
@@ -675,7 +667,7 @@ float MapgenValleys::humidityFromNoise(float humidity, float mount, float valley
 Biome *MapgenValleys::getBiomeAtPoint(v3s16 p)
 {
 	float heat = NoisePerlin2D(&noise_heat->np, p.X, p.Z, seed) + NoisePerlin2D(&noise_heat_blend->np, p.X, p.Z, seed);
-	heat = heat - altitude_chill * (p.Y - 20);
+	heat -= altitude_chill * p.Y;
 
 	float terrain_height = NoisePerlin2D(&noise_terrain_height->np, p.X, p.Z, seed);
 	float rivers = NoisePerlin2D(&noise_rivers->np, p.X, p.Z, seed);
@@ -688,7 +680,7 @@ Biome *MapgenValleys::getBiomeAtPoint(v3s16 p)
 	s16 groundlevel = (s16) mount;
 
 	float humidity = NoisePerlin2D(&noise_humidity->np, p.X, p.Z, seed) + NoisePerlin2D(&noise_humidity_blend->np, p.X, p.Z, seed);
-	humidity = humidityFromNoise(humidity, mount, valley);
+	humidity = humidityByTerrain(humidity, mount, valley);
 
 	return bmgr->getBiome(heat, humidity, groundlevel);
 }
@@ -723,17 +715,6 @@ float MapgenValleys::baseTerrainLevelFromMap(int index, float *river_y)
 
 
 int MapgenValleys::generateTerrain()
-{
-	s16 stone_surface_min_y;
-	s16 stone_surface_max_y;
-
-	generateBaseTerrain(&stone_surface_min_y, &stone_surface_max_y);
-
-	return stone_surface_max_y;
-}
-
-
-void MapgenValleys::generateBaseTerrain(s16 *stone_surface_min_y, s16 *stone_surface_max_y)
 {
 	MapNode n_air(CONTENT_AIR);
 	MapNode n_stone(c_stone);
@@ -782,8 +763,7 @@ void MapgenValleys::generateBaseTerrain(s16 *stone_surface_min_y, s16 *stone_sur
 		}
 	}
 
-	*stone_surface_min_y = surface_min_y;
-	*stone_surface_max_y = surface_max_y;
+	return surface_max_y;
 }
 
 
@@ -823,10 +803,8 @@ MgStoneType MapgenValleys::generateBiomes(float *heat_map, float *humidity_map)
 			// 3. When stone or water is detected but biome has not yet been calculated.
 			if ((c == c_stone && (air_above || water_above || !biome)) ||
 					((c == c_water_source || c == c_river_water_source) && (air_above || !biome))) {
-				float heat = heat_map[index];
-				if (y > 0)
-					heat = heat - altitude_chill * (y - 20);
-				biome = bmgr->getBiome(heat, humidity_map[index], y);
+				// Both heat and humidity have already been adjusted for altitude.
+				biome = bmgr->getBiome(heat_map[index], humidity_map[index], y);
 #if 0
 				if (biome->index != biomemap[index])
 					printf("Biome change at %d,%d\n", x,z);
