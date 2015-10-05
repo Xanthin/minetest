@@ -1,5 +1,5 @@
 /*
-Minetest
+Minetest Valleys C
 Copyright (C) Duane Robertson <duane@duanerobertson.com>
 
 Based on Valleys Mapgen by Gael de Sailly
@@ -17,7 +17,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 GNU GENERAL PUBLIC LICENSE
-                       Version 3, 29 June 2007
+Version 3, 29 June 2007
 
 See http://www.gnu.org/licenses/gpl-3.0.en.html
 */
