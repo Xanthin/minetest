@@ -538,6 +538,10 @@ node definition:
       0 = y+    1 = z+    2 = z-    3 = x+    4 = x-    5 = y-
       facedir's two less significant bits are rotation around the axis
     paramtype2 == "leveled"
+    paramtype2 == "degrotate"
+    ^ The rotation of this node is stored in param2. Plants are rotated this way.
+      Values range 0 - 179. The value stored in param2 is multiplied by two to
+      get the actual rotation of the node.
     collision_box = {
       type = "fixed",
       fixed = {
@@ -3219,14 +3223,17 @@ Definition tables
         },
 
         on_construct = func(pos), --[[
-        ^ Node constructor; always called after adding node
+        ^ Node constructor; called after adding node
         ^ Can set up metadata and stuff like that
+        ^ Not called for bulk node placement (i.e. schematics and VoxelManip)
         ^ default: nil ]]
         on_destruct = func(pos), --[[
-        ^ Node destructor; always called before removing node
+        ^ Node destructor; called before removing node
+        ^ Not called for bulk node placement (i.e. schematics and VoxelManip)
         ^ default: nil ]]
         after_destruct = func(pos, oldnode), --[[
-        ^ Node destructor; always called after removing node
+        ^ Node destructor; called after removing node
+        ^ Not called for bulk node placement (i.e. schematics and VoxelManip)
         ^ default: nil ]]
 
         after_place_node = func(pos, placer, itemstack, pointed_thing) --[[

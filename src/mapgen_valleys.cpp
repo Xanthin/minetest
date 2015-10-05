@@ -268,7 +268,7 @@ void MapgenValleysParams::readParams(const Settings *settings)
 
 void MapgenValleysParams::writeParams(Settings *settings) const
 {
-	settings->setFlagStr("mg_valleys_spflags", spflags, flagdesc_mapgen_valleys, (u32)-1);
+	settings->setFlagStr("mg_valleys_spflags", spflags, flagdesc_mapgen_valleys, U32_MAX);
 
 	settings->setNoiseParams("mg_valleys_np_filler_depth",    np_filler_depth);
 	settings->setNoiseParams("mg_valleys_np_v7_caves_1",    np_v7_caves_1);
@@ -791,7 +791,7 @@ MgStoneType MapgenValleys::generateBiomes(float *heat_map, float *humidity_map)
 
 		// If there is air or water above enable top/filler placement, otherwise force
 		// nplaced to stone level by setting a number exceeding any possible filler depth.
-		u16 nplaced = (air_above || water_above) ? 0 : (u16)-1;
+		u16 nplaced = (air_above || water_above) ? 0 : U16_MAX;
 
 		for (s16 y = node_max.Y; y >= node_min.Y; y--) {
 			content_t c = vm->m_data[vi].getContent();
@@ -836,7 +836,7 @@ MgStoneType MapgenValleys::generateBiomes(float *heat_map, float *humidity_map)
 				// This is done by aborting the cycle of top/filler placement
 				// immediately by forcing nplaced to stone level.
 				if (c_below == CONTENT_AIR || c_below == c_water_source || c_below == c_river_water_source)
-					nplaced = (u16)-1;
+					nplaced = U16_MAX;
 
 				if (nplaced < depth_top) {
 					vm->m_data[vi] = MapNode(biome->c_top);
@@ -857,7 +857,7 @@ MgStoneType MapgenValleys::generateBiomes(float *heat_map, float *humidity_map)
 				water_above = true;
 			} else if (c == c_river_water_source) {
 				vm->m_data[vi] = MapNode(biome->c_river_water);
-				nplaced = (u16) -1;
+				nplaced = U16_MAX;
 				air_above = false;
 				water_above = true;
 			} else if (c == CONTENT_AIR) {
@@ -865,7 +865,7 @@ MgStoneType MapgenValleys::generateBiomes(float *heat_map, float *humidity_map)
 				air_above = true;
 				water_above = false;
 			} else {  // Possible various nodes overgenerated from neighbouring mapchunks
-				nplaced = (u16)-1;  // Disable top/filler placement
+				nplaced = U16_MAX;  // Disable top/filler placement
 				air_above = false;
 				water_above = false;
 			}
