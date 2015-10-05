@@ -1,20 +1,25 @@
 /*
 Minetest
-Copyright (C) 2010-2013 kwolekr, Ryan Kwolek <kwolekr@minetest.net>
+Copyright (C) Duane Robertson <duane@duanerobertson.com>
+
+Based on Valleys Mapgen by Gael de Sailly
+ (https://forum.minetest.net/viewtopic.php?f=9&t=11430)
+and mapgen_v7 by kwolekr, Ryan Kwolek <kwolekr@minetest.net>.
 
 This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as published by
-the Free Software Foundation; either version 2.1 of the License, or
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3.0 of the License, or
 (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
+GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public License along
-with this program; if not, write to the Free Software Foundation, Inc.,
-51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+GNU GENERAL PUBLIC LICENSE
+                       Version 3, 29 June 2007
+
+See http://www.gnu.org/licenses/gpl-3.0.en.html
 */
 
 
@@ -37,7 +42,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "mg_decoration.h"
 #include "mapgen_valleys.h"
 
-//#include "util/timetaker.h"
+#include "util/timetaker.h"
 //#undef NDEBUG
 //#include "assert.h"
 
@@ -47,6 +52,7 @@ FlagDesc flagdesc_mapgen_valleys[] = {
 	{"v7caves", MG_VALLEYS_V7_CAVES},
 	{"lava", MG_VALLEYS_LAVA},
 	{"groundwater", MG_VALLEYS_GROUND_WATER},
+	{"profile", MG_VALLEYS_PROFILE},
 	{NULL,        0}
 };
 
@@ -70,7 +76,7 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 	this->heatmap         = NULL;
 	this->humidmap        = NULL;
 
-	// this is only here for compatibility with v7 caves
+	// This is only here for compatibility with v7 caves.
 	this->ridge_heightmap = new s16[csize.X * csize.Z];
 
 	MapgenValleysParams *sp = (MapgenValleysParams *)params->sparams;
@@ -325,7 +331,8 @@ void MapgenValleys::makeChunk(BlockMakeData *data)
 	this->generating = true;
 	this->vm   = data->vmanip;
 	this->ndef = data->nodedef;
-	//TimeTaker t("makeChunk");
+
+	TimeTaker t("makeChunk");
 
 	v3s16 blockpos_min = data->blockpos_min;
 	v3s16 blockpos_max = data->blockpos_max;
@@ -414,6 +421,8 @@ void MapgenValleys::makeChunk(BlockMakeData *data)
 	// Sprinkle some dust on top after everything else was generated
 	dustTopNodes();
 
+	TimeTaker tll("liquid_lighting");
+
 	updateLiquid(&data->transforming_liquid, full_node_min, full_node_max);
 
 	if (flags & MG_LIGHT)
@@ -423,7 +432,11 @@ void MapgenValleys::makeChunk(BlockMakeData *data)
 	//setLighting(node_min - v3s16(1, 0, 1) * MAP_BLOCKSIZE,
 	//			node_max + v3s16(1, 0, 1) * MAP_BLOCKSIZE, 0xFF);
 
-	//printf("makeChunk: %dms\n", t.stop());
+	if (MG_VALLEYS_PROFILE)
+		printf("liquid_lighting: %dms\n", tll.stop());
+
+	if (MG_VALLEYS_PROFILE)
+		printf("makeChunk: %dms\n", t.stop());
 
 	this->generating = false;
 }
@@ -509,6 +522,8 @@ void MapgenValleys::calculateNoise()
 	int y = node_min.Y - 1;
 	int z = node_min.Z;
 
+	TimeTaker tcn("actualNoise");
+
 	noise_filler_depth->perlinMap2D(x, z);
 	noise_heat->perlinMap2D(x, z);
 	noise_humidity->perlinMap2D(x, z);
@@ -543,6 +558,9 @@ void MapgenValleys::calculateNoise()
 			}
 		}
 	}
+
+	if (MG_VALLEYS_PROFILE)
+		printf("actualNoise: %dms\n", tcn.stop());
 
 	for (s32 index = 0; index < csize.X * csize.Z; index++) {
 		noise_heat->result[index] += noise_heat_blend->result[index];
