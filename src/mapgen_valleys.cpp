@@ -466,7 +466,6 @@ void MapgenValleys::fixRivers(s16 sx, s16 sy, s16 *height_map)
 					}
 				}
 				if (!supported) {
-					//printf("Fixing a floating river at %d, %d\n", x, z);
 					for (s16 y = river_y; y >= node_min.Y; y--) {
 						u32 i = vm->m_area.index(x, y, z);
 						content_t c = vm->m_data[i].getContent();
@@ -482,8 +481,8 @@ void MapgenValleys::fixRivers(s16 sx, s16 sy, s16 *height_map)
 
 				// Try to keep the rivers from overflowing.
 				// Look at the neighbor heights.
-				for (s16 z1 = -1; z1 <= 1; z1++)
-					for (s16 x1 = -1; x1 <= 1; x1++) {
+				for (s16 z1 = -2; z1 <= 2; z1++)
+					for (s16 x1 = -2; x1 <= 2; x1++) {
 						if (z+z1 >= node_min.Z and z+z1 <= node_max.Z and x+x1 >= node_min.X and x+x1 <= node_max.X) {
 							s16 i2 = index + z1 * csize.X + x1;
 							float river_y2 = noise_rivers->result[i2];
@@ -737,7 +736,7 @@ int MapgenValleys::generateTerrain()
 		u32 i = vm->m_area.index(x, node_min.Y - 1, z);
 		for (s16 y = node_min.Y - 1; y <= node_max.Y + 1; y++) {
 			if (vm->m_data[i].getContent() == CONTENT_IGNORE) {
-				if (river_y > surface_y && y == surface_y)
+				if (river_y > surface_y && y == surface_y + 1)
 					// river bottom
 					vm->m_data[i] = n_sand;
 				else if (y <= surface_y)
