@@ -778,6 +778,39 @@
 #mgv7_np_cave1 = 0, 12, (100, 100, 100), 52534, 4, 0.5, 2.0
 #mgv7_np_cave2 = 0, 12, (100, 100, 100), 10325, 4, 0.5, 2.0
 
+#mg_valleys_spflags = nofast, v7caves, nolava, nogroundwater
+#mg_valleys_temperature = 50     # the average temperature in degrees Fahrenheit
+#mg_valleys_humidity = 50        # the average humidity as a percentage
+#mg_valleys_river_size = 5       # how wide to make rivers
+#mg_valleys_river_depth = 4      # how deep to make rivers
+#mg_valleys_water_level = 1      # sea-level
+#mg_valleys_altitude_chill = 90  # the altitude at which temperature drops by 20C
+#mg_valleys_cave_size = 7        # average cave radius (vmg caves only)
+#mg_valleys_lava_max_height = 0  # maximum altitude of lava (vmg caves only)
+#mg_valleys_lava_frequency = 5   # how common lava is (vmg caves only)
+#mg_valleys_ground_water_frequency = 5  # how common water is underground (")
+#mg_valleys_np_filler_depth = 0, 1.2, (150, 150, 150), 261, 3, 0.7, 2.0
+#mg_valleys_np_v7_caves_1 = 0, 12, (100, 100, 100), 52534, 4, 0.5, 2.0
+#mg_valleys_np_v7_caves_2 = 0, 12, (100, 100, 100), 10325, 4, 0.5, 2.0
+#mg_valleys_np_biome_heat = 50, 50, (750, 750, 750), 5349, 3, 0.5, 2.0
+#mg_valleys_np_biome_heat_blend = 0, 1.5, (8, 8, 8), 13, 2, 1.0, 2.0
+#mg_valleys_np_biome_humidity = 50, 50, (750, 750, 750), 842, 3, 0.5, 2.0
+#mg_valleys_np_biome_humidity_blend = 0, 1.5, (8, 8, 8), 90003, 2, 1.0, 2.0
+#mg_valleys_np_terrain_height = -10, 50, (1024, 1024, 1024), 5202, 6, 0.4, 2.0
+#mg_valleys_np_rivers = 0, 1, (256, 256, 256), -6050, 5, 0.6, 2.0
+#mg_valleys_np_valley_depth = 5, 4, (512, 512, 512), -1914, 1, 1.0, 2.0
+#mg_valleys_np_valley_profile = 0.6, 0.5, (512, 512, 512), 777, 1, 1.0, 2.0
+#mg_valleys_np_inter_valley_slope = 0.5, 0.5, (128, 128, 128), 746, 1, 1.0, 2.0
+#mg_valleys_np_inter_valley_fill = 0, 1, (256, 256, 256), 1993, 6, 0.8, 2.0
+#mg_valleys_np_caves_1 = 0, 1, (32, 32, 32), -4640, 4, 0.5, 2.0
+#mg_valleys_np_caves_2 = 0, 1, (32, 32, 32), 8804, 4, 0.5, 2.0
+#mg_valleys_np_caves_3 = 0, 1, (32, 32, 32), -4780, 4, 0.5, 2.0
+#mg_valleys_np_caves_4 = 0, 1, (32, 32, 32), -9969, 4, 0.5, 2.0
+#mg_valleys_np_lava_1 = 0, 1, (32, 32, 32), 75266, 4, 0.5, 2.0
+#mg_valleys_np_lava_2 = 0, 1, (32, 32, 32), -89113, 4, 0.5, 2.0
+#mg_valleys_np_water_1 = 0, 1, (32, 32, 32), 82329, 4, 0.5, 2.0
+#mg_valleys_np_water_2 = 0, 1, (32, 32, 32), -59107, 4, 0.5, 2.0
+
 #    Prevent mods from doing insecure things like running shell commands.
 #secure.enable_security = false
 
