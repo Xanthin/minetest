@@ -48,7 +48,6 @@ See http://www.gnu.org/licenses/gpl-3.0.en.html
 
 
 FlagDesc flagdesc_mapgen_valleys[] = {
-	{"fast", MG_VALLEYS_FASTER_TERRAIN},
 	{"v7caves", MG_VALLEYS_V7_CAVES},
 	{"lava", MG_VALLEYS_LAVA},
 	{"groundwater", MG_VALLEYS_GROUND_WATER},
@@ -81,21 +80,17 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 	MapgenValleysParams *sp = (MapgenValleysParams *)params->sparams;
 	this->spflags = sp->spflags;
 	
-	// If fast is selected, generate v7 caves. Vmg caves are slow.
-	if (spflags & MG_VALLEYS_FASTER_TERRAIN)
-		spflags = spflags | MG_VALLEYS_V7_CAVES;
-
 	river_size = (float)(sp->river_size) / 100;
 	river_depth = sp->river_depth + 1;
 	water_level = sp->water_level;
-	altitude_chill = 3.6 / sp->altitude_chill;
+	altitude_chill = sp->altitude_chill;
 	cave_size = (float)(sp->cave_size) / 100;
 	lava_max_height = sp->lava_max_height;
 	ground_water_frequency = fmin(sp->ground_water_frequency, 1) / 10000;
 	lava_frequency = fmin(sp->lava_frequency, 1) / 10000;
 
 	humidity_adjust = sp->humidity - 50;
-	temperature_adjust = (sp->temperature / 50);
+	temperature_adjust = sp->temperature - 50;
 
 	//// Terrain noise
 	noise_filler_depth    = new Noise(&sp->np_filler_depth,    seed, csize.X, csize.Z);
@@ -198,7 +193,7 @@ MapgenValleysParams::MapgenValleysParams()
 	np_v7_caves_1 = NoiseParams(0, 12, v3f(100, 100, 100), 52534, 4, 0.5, 2.0);
 	np_v7_caves_2 = NoiseParams(0, 12, v3f(100, 100, 100), 10325, 4, 0.5, 2.0);
 
-	np_biome_heat = NoiseParams(50, 50, v3f(750.0, 750.0, 750.0), 5349, 3, 0.5, 2.0);
+	np_biome_heat = NoiseParams(60, 50, v3f(750.0, 750.0, 750.0), 5349, 3, 0.5, 2.0);
 	np_biome_heat_blend = NoiseParams(0, 1.5, v3f(8.0, 8.0, 8.0), 13, 2, 1.0, 2.0);
 	np_biome_humidity = NoiseParams(50, 50, v3f(750.0, 750.0, 750.0), 842, 3, 0.5, 2.0);
 	np_biome_humidity_blend = NoiseParams(0, 1.5, v3f(8.0, 8.0, 8.0), 90003, 2, 1.0, 2.0);
@@ -209,7 +204,7 @@ MapgenValleysParams::MapgenValleysParams()
 	np_valley_depth = NoiseParams(5, 4, v3f(512, 512, 512), -1914, 1, 1.0, 2.0);
 	np_valley_profile = NoiseParams(0.6, 0.5, v3f(512, 512, 512), 777, 1, 1.0, 2.0);
 	np_inter_valley_slope = NoiseParams(0.5, 0.5, v3f(128, 128, 128), 746, 1, 1.0, 2.0);
-	np_inter_valley_fill = NoiseParams(0, 1, v3f(256, 256, 256), 1993, 6, 0.8, 2.0);
+	np_inter_valley_fill = NoiseParams(0, 1, v3f(768, 768, 768), 1993, 6, 0.8, 2.0);
 	np_caves_1 = NoiseParams(0, 1, v3f(32, 32, 32), -4640, 4, 0.5, 2.0);
 	np_caves_2 = NoiseParams(0, 1, v3f(32, 32, 32), 8804, 4, 0.5, 2.0);
 	np_caves_3 = NoiseParams(0, 1, v3f(32, 32, 32), -4780, 4, 0.5, 2.0);
@@ -454,6 +449,8 @@ void MapgenValleys::fixRivers(s16 sx, s16 sy, s16 *height_map)
 			s16 river_y = (s16) noise_rivers->result[index];
 			if (river_y > 0 && river_y >= node_min.Y && river_y <= node_max.Y) {
 				// Try to eliminate rivers floating over cave openings.
+				//  There's no practical way to fill caves, since they span
+				//   chunks, so this is about the best we can do.
 				bool supported = false;
 				for (s16 y = river_y; y >= node_min.Y; y--) {
 					u32 i = vm->m_area.index(x, y, z);
@@ -522,13 +519,14 @@ void MapgenValleys::calculateNoise()
 	noise_valley_depth->perlinMap2D(x, z);
 	noise_valley_profile->perlinMap2D(x, z);
 	noise_inter_valley_slope->perlinMap2D(x, z);
+	noise_inter_valley_fill->perlinMap2D(x, z);
 
 	if (flags & MG_CAVES) {
 		if (spflags & MG_VALLEYS_V7_CAVES) {
 			noise_v7_caves_1->perlinMap3D(x, y, z);
 			noise_v7_caves_2->perlinMap3D(x, y, z);
 		} else {
-			// Way too many noise maps.
+			// way too many noise maps
 			noise_caves_1->perlinMap3D(x, y, z);
 			noise_caves_2->perlinMap3D(x, y, z);
 			noise_caves_3->perlinMap3D(x, y, z);
@@ -550,7 +548,7 @@ void MapgenValleys::calculateNoise()
 
 	for (s32 index = 0; index < csize.X * csize.Z; index++) {
 		noise_heat->result[index] += noise_heat_blend->result[index];
-		noise_heat->result[index] *= temperature_adjust;
+		noise_heat->result[index] += temperature_adjust;
 		noise_humidity->result[index] += noise_humidity_blend->result[index];
 	}
 
@@ -563,10 +561,11 @@ void MapgenValleys::calculateNoise()
 		float valley_depth = noise_valley_depth->result[index];
 		float valley_profile = noise_valley_profile->result[index];
 		float inter_valley_slope = noise_inter_valley_slope->result[index];
+		float inter_valley_fill = noise_inter_valley_fill->result[index];
 
 		// The two parameters that we actually need to generate terrain
 		//  are terrain height and river noise.
-		mount = baseGroundFromNoise(xi, zi, valley_depth, terrain_height, &rivers, valley_profile, inter_valley_slope, &valley);
+		mount = baseGroundFromNoise(xi, zi, valley_depth, terrain_height, &rivers, valley_profile, inter_valley_slope, &valley, inter_valley_fill);
 		noise_terrain_height->result[index] = mount;
 		noise_rivers->result[index] = rivers;
 
@@ -577,7 +576,7 @@ void MapgenValleys::calculateNoise()
 
 		// Assign the heat adjusted by altitude. See humidity, above.
 		if (mount > 0)
-			noise_heat->result[index] -= altitude_chill * mount;
+			noise_heat->result[index] *= pow(0.5, mount / altitude_chill);
 	}
 
 	heatmap = noise_heat->result;
@@ -587,61 +586,49 @@ void MapgenValleys::calculateNoise()
 
 // This ugly function keeps me from having to maintain two similar sets of
 //  complicated code to determine ground level.
-float MapgenValleys::baseGroundFromNoise(s16 x, s16 z, float valley_depth, float terrain_height, float *rivers, float valley_profile, float inter_valley_slope, float *valley)
+float MapgenValleys::baseGroundFromNoise(s16 x, s16 z, float valley_depth, float terrain_height, float *rivers, float valley_profile, float inter_valley_slope, float *valley, float inter_valley_fill)
 {
 	// The square function changes the behaviour of this noise:
 	//  very often small, and sometimes very high.
 	float valley_d = pow(valley_depth, 2);
+
 	// valley_d is here because terrain is generally higher where valleys
 	//  are deep (mountains). base represents the height of the
 	//  rivers, most of the surface is above.
 	float base = terrain_height + valley_d;
+
 	// "river" represents the distance from the river, in arbitrary units.
 	float river = fabs(*rivers) - river_size;
 	*rivers = -31000;
+
 	// Use the curve of the function 1−exp(−(x/a)²) to model valleys.
 	//  Making "a" vary (0 < a ≤ 1) changes the shape of the valleys.
 	//  Try it with a geometry software !
 	//   (here x = "river" and a = valley_profile).
 	//  "valley" represents the height of the terrain, from the rivers.
 	*valley = valley_d * (1 - exp(- pow(river / valley_profile, 2)));
+
 	// approximate height of the terrain at this point
-	//  (could be slightly modified by the 3D noise #6)
 	float mount = base + *valley;
 
 	float slope = *valley * inter_valley_slope;
+
 	// Rivers are placed where "river" is negative, so where the original
 	//  noise value is close to zero.
 	if (river < 0) {
 		// Use the the function −sqrt(1−x²) which models a circle.
 		float depth = (river_depth * sqrt(1 - pow((river / river_size + 1), 2))) + 1;
-		// This seems to be behaving differently than in the lua.
 		*rivers = base;
+
 		// base - depth : height of the bottom of the river
 		// water_level - 2 : don't make rivers below 2 nodes under the surface
 		mount = fmin(fmax(mount - depth, water_level - 2), mount);
+
 		// Slope has no influence on rivers.
 		slope = 0;
 	}
 
-	// This doesn't make a huge difference in appearence,
-	//  so it might be worth leaving out.
-	if (!(spflags & MG_VALLEYS_FASTER_TERRAIN)) {
-		float mount2 = mount;
-		// Find the final ground level, influenced by inter_valley_slope.
-		if (NoisePerlin3D(&noise_inter_valley_fill->np, x, mount2, z, seed) * slope > mount2 - mount) {
-			mount2++;
-			while (NoisePerlin3D(&noise_inter_valley_fill->np, x, mount2, z, seed) * slope > mount2 - mount)
-				mount2++;
-		} else {
-			mount2--;
-			while (NoisePerlin3D(&noise_inter_valley_fill->np, x, mount2, z, seed) * slope <= mount2 - mount)
-				mount2--;
-		}
-		// This affects rivers too.
-		*rivers += mount2 - mount;
-		mount = mount2;
-	}
+	mount += inter_valley_fill * slope;
 
 	return mount;
 }
@@ -666,7 +653,7 @@ float MapgenValleys::humidityByTerrain(float humidity, float mount, float valley
 Biome *MapgenValleys::getBiomeAtPoint(v3s16 p)
 {
 	float heat = NoisePerlin2D(&noise_heat->np, p.X, p.Z, seed) + NoisePerlin2D(&noise_heat_blend->np, p.X, p.Z, seed);
-	heat -= altitude_chill * p.Y;
+	heat *= pow(0.5, p.Y / altitude_chill);
 
 	float terrain_height = NoisePerlin2D(&noise_terrain_height->np, p.X, p.Z, seed);
 	float rivers = NoisePerlin2D(&noise_rivers->np, p.X, p.Z, seed);
@@ -674,8 +661,9 @@ Biome *MapgenValleys::getBiomeAtPoint(v3s16 p)
 	float valley_profile = NoisePerlin2D(&noise_valley_profile->np, p.X, p.Z, seed);
 	float inter_valley_slope = NoisePerlin2D(&noise_inter_valley_slope->np, p.X, p.Z, seed);
 	float valley;
+	float inter_valley_fill = NoisePerlin2D(&noise_inter_valley_fill->np, p.X, p.Z, seed);
 
-	float mount = baseGroundFromNoise(p.X, p.Z, valley_depth, terrain_height, &rivers, valley_profile, inter_valley_slope, &valley);
+	float mount = baseGroundFromNoise(p.X, p.Z, valley_depth, terrain_height, &rivers, valley_profile, inter_valley_slope, &valley, inter_valley_fill);
 	s16 groundlevel = (s16) mount;
 
 	float humidity = NoisePerlin2D(&noise_humidity->np, p.X, p.Z, seed) + NoisePerlin2D(&noise_humidity_blend->np, p.X, p.Z, seed);
@@ -700,9 +688,10 @@ float MapgenValleys::baseTerrainLevelAtPoint(s16 x, s16 z)
 	float valley_depth = NoisePerlin2D(&noise_valley_depth->np, x, z, seed);
 	float valley_profile = NoisePerlin2D(&noise_valley_profile->np, x, z, seed);
 	float inter_valley_slope = NoisePerlin2D(&noise_inter_valley_slope->np, x, z, seed);
+	float inter_valley_fill = NoisePerlin2D(&noise_inter_valley_fill->np, x, z, seed);
 	float valley;
 
-	return MapgenValleys::baseGroundFromNoise(x, z, valley_depth, terrain_height, &rivers, valley_profile, inter_valley_slope, &valley);
+	return MapgenValleys::baseGroundFromNoise(x, z, valley_depth, terrain_height, &rivers, valley_profile, inter_valley_slope, &valley, inter_valley_fill);
 }
 
 

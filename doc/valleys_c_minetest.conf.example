@@ -34,10 +34,6 @@
 
 #mg_valleys_spflags = nofast, v7caves, nolava, nogroundwater
 
-#   fast/nofast: This gives you a slight speed increase by skipping
-#                 the humidity adjustments near water and the final round
-#                 of terrain adjustment.
-
 #   v7caves:     Uses the stock mapgen_v7 caves. There's a huge speed
 #                 improvement, although they may look a bit odd.
 
@@ -48,9 +44,8 @@
 
 # Performance Note: Frankly, there's no good reason to ever turn off the
 #  v7caves flag. The original Valleys caves are slow, and unfortunately, 
-#  I made it worse when I added water to them. On the other hand, the
-#  fast flag only gives you about a 5% speed increase, so it's probably
-#  not worthwhile.
+#  I made it worse when I added water to them.
+
 
 # Noise Functions
 

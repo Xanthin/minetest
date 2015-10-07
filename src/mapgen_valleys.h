@@ -28,11 +28,10 @@ See http://www.gnu.org/licenses/gpl-3.0.en.html
 #include "mapgen.h"
 
 /////////////////// Mapgen Valleys flags
-#define MG_VALLEYS_FASTER_TERRAIN 0x01
-#define MG_VALLEYS_V7_CAVES 0x02
-#define MG_VALLEYS_LAVA 0x04
-#define MG_VALLEYS_GROUND_WATER 0x08
-#define MG_VALLEYS_PROFILE 0x10
+#define MG_VALLEYS_V7_CAVES 0x01
+#define MG_VALLEYS_LAVA 0x02
+#define MG_VALLEYS_GROUND_WATER 0x04
+#define MG_VALLEYS_PROFILE 0x08
 
 class BiomeManager;
 
@@ -168,7 +167,7 @@ public:
 	void calculateNoise();
 
 	virtual int generateTerrain();
-	float baseGroundFromNoise(s16 x, s16 z, float valley_depth, float terrain_height, float *rivers, float valley_profile, float inter_valley_slope, float *valley);
+	float baseGroundFromNoise(s16 x, s16 z, float valley_depth, float terrain_height, float *rivers, float valley_profile, float inter_valley_slope, float *valley, float inter_valley_fill);
 	float humidityByTerrain(float humidity, float mount, float valley);
 
 	MgStoneType generateBiomes(float *heat_map, float *humidity_map);

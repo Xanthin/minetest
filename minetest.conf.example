@@ -778,7 +778,7 @@
 #mgv7_np_cave1 = 0, 12, (100, 100, 100), 52534, 4, 0.5, 2.0
 #mgv7_np_cave2 = 0, 12, (100, 100, 100), 10325, 4, 0.5, 2.0
 
-#mg_valleys_spflags = nofast, v7caves, nolava, nogroundwater
+#mg_valleys_spflags = v7caves, nolava, nogroundwater
 #mg_valleys_temperature = 50     # the average temperature in degrees Fahrenheit
 #mg_valleys_humidity = 50        # the average humidity as a percentage
 #mg_valleys_river_size = 5       # how wide to make rivers
