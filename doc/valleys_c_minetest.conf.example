@@ -67,6 +67,10 @@
 # VMG base terrain height
 #mg_valleys_np_terrain_height = -10, 50, (1024, 1024, 1024), 5202, 6, 0.4, 2.0
 
+# Cliff noise and mountain corrugation
+#mg_valleys_np_cliffs = 0, 1, (750, 750, 750), 8445, 5, 1.0, 2.0
+#mg_valleys_np_corr = 0, 1, (40, 40, 40), -3536, 4, 1.0, 2.0
+
 # VMG river noise -- rivers occur close to zero
 #mg_valleys_np_rivers = 0, 1, (256, 256, 256), -6050, 5, 0.6, 2.0
 
@@ -74,7 +78,7 @@
 #mg_valleys_np_valley_depth = 5, 4, (512, 512, 512), -1914, 1, 1.0, 2.0
 #mg_valleys_np_valley_profile = 0.6, 0.5, (512, 512, 512), 777, 1, 1.0, 2.0
 #mg_valleys_np_inter_valley_slope = 0.5, 0.5, (128, 128, 128), 746, 1, 1.0, 2.0
-#mg_valleys_np_inter_valley_fill = 0, 1, (256, 256, 256), 1993, 6, 0.8, 2.0
+#mg_valleys_np_inter_valley_fill = 0, 1, (768, 768, 768), 1993, 6, 0.8, 2.0
 
 # VMG cave noises -- caves occur when the product is close to zero
 #mg_valleys_np_caves_1 = 0, 1, (32, 32, 32), -4640, 4, 0.5, 2.0

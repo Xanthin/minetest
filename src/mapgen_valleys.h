@@ -57,6 +57,8 @@ struct MapgenValleysParams : public MapgenSpecificParams {
 	NoiseParams np_biome_heat_blend;
 	NoiseParams np_biome_humidity;
 	NoiseParams np_biome_humidity_blend;
+	NoiseParams np_cliffs;
+	NoiseParams np_corr;
 
 	// vmg noises
 	NoiseParams np_terrain_height;
@@ -125,6 +127,8 @@ public:
 	Noise *noise_lava_2;
 	Noise *noise_water_1;
 	Noise *noise_water_2;
+	Noise *noise_cliffs;
+	Noise *noise_corr;
 
 	float altitude_chill;
 	float river_size;
@@ -167,7 +171,7 @@ public:
 	void calculateNoise();
 
 	virtual int generateTerrain();
-	float baseGroundFromNoise(s16 x, s16 z, float valley_depth, float terrain_height, float *rivers, float valley_profile, float inter_valley_slope, float *valley, float inter_valley_fill);
+	float baseGroundFromNoise(s16 x, s16 z, float valley_depth, float terrain_height, float *rivers, float valley_profile, float inter_valley_slope, float *valley, float inter_valley_fill, float cliffs, float corr);
 	float humidityByTerrain(float humidity, float mount, float valley);
 
 	MgStoneType generateBiomes(float *heat_map, float *humidity_map);
