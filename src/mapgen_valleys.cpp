@@ -429,10 +429,10 @@ void MapgenValleys::makeChunk(BlockMakeData *data)
 		calcLighting(node_min - v3s16(0, 1, 0), node_max + v3s16(0, 1, 0),
 			full_node_min, full_node_max);
 
-	if (MG_VALLEYS_PROFILE)
+	if (flags & MG_VALLEYS_PROFILE)
 		printf("liquid_lighting: %dms\n", tll.stop());
 
-	if (MG_VALLEYS_PROFILE)
+	if (flags & MG_VALLEYS_PROFILE)
 		printf("makeChunk: %dms\n", t.stop());
 
 	this->generating = false;
@@ -555,7 +555,7 @@ void MapgenValleys::calculateNoise()
 		}
 	}
 
-	if (MG_VALLEYS_PROFILE)
+	if (flags & MG_VALLEYS_PROFILE)
 		printf("actualNoise: %dms\n", tcn.stop());
 
 	for (s32 index = 0; index < csize.X * csize.Z; index++) {
