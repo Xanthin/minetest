@@ -804,6 +804,8 @@
 #mg_valleys_np_valley_profile = 0.6, 0.5, (512, 512, 512), 777, 1, 1.0, 2.0
 #mg_valleys_np_inter_valley_slope = 0.5, 0.5, (128, 128, 128), 746, 1, 1.0, 2.0
 #mg_valleys_np_inter_valley_fill = 0, 1, (768, 768, 768), 1993, 6, 0.8, 2.0
+#mg_valleys_np_simple_caves_1 = 0, 1, v3f(64, 64, 64), -8402, 3, 0.5, 2.0
+#mg_valleys_np_simple_caves_2 = 0, 1, v3f(64, 64, 64), 3944, 3, 0.5, 2.0
 #mg_valleys_np_caves_1 = 0, 1, (32, 32, 32), -4640, 4, 0.5, 2.0
 #mg_valleys_np_caves_2 = 0, 1, (32, 32, 32), 8804, 4, 0.5, 2.0
 #mg_valleys_np_caves_3 = 0, 1, (32, 32, 32), -4780, 4, 0.5, 2.0

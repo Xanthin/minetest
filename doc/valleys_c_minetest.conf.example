@@ -86,6 +86,10 @@
 #mg_valleys_np_caves_3 = 0, 1, (32, 32, 32), -4780, 4, 0.5, 2.0
 #mg_valleys_np_caves_4 = 0, 1, (32, 32, 32), -9969, 4, 0.5, 2.0
 
+# VMG simple cave noises
+#mg_valleys_np_simple_caves_1 = 0, 1, v3f(64, 64, 64), -8402, 3, 0.5, 2.0
+#mg_valleys_np_simple_caves_2 = 0, 1, v3f(64, 64, 64), 3944, 3, 0.5, 2.0
+
 # VMG liquid noises
 #mg_valleys_np_lava_1 = 0, 1, (32, 32, 32), 75266, 4, 0.5, 2.0
 #mg_valleys_np_lava_2 = 0, 1, (32, 32, 32), -89113, 4, 0.5, 2.0

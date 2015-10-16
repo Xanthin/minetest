@@ -79,7 +79,7 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 
 	MapgenValleysParams *sp = (MapgenValleysParams *)params->sparams;
 	this->spflags = sp->spflags;
-	
+
 	river_size = (float)(sp->river_size) / 100;
 	river_depth = sp->river_depth + 1;
 	water_level = sp->water_level;
@@ -96,6 +96,8 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 	noise_filler_depth = new Noise(&sp->np_filler_depth,    seed, csize.X, csize.Z);
 	noise_v7_caves_1 = new Noise(&sp->np_v7_caves_1, seed, csize.X, csize.Y + 2, csize.Z);
 	noise_v7_caves_2 = new Noise(&sp->np_v7_caves_2, seed, csize.X, csize.Y + 2, csize.Z);
+	noise_simple_caves_1 = new Noise(&sp->np_simple_caves_1, seed, csize.X, csize.Y + 2, csize.Z);
+	noise_simple_caves_2 = new Noise(&sp->np_simple_caves_2, seed, csize.X, csize.Y + 2, csize.Z);
 	noise_cliffs = new Noise(&sp->np_cliffs, seed, csize.X, csize.Z);
 	noise_corr = new Noise(&sp->np_corr, seed, csize.X, csize.Z);
 
@@ -196,6 +198,8 @@ MapgenValleysParams::MapgenValleysParams()
 	np_filler_depth = NoiseParams(0, 1.2, v3f(150, 150, 150), 261, 3, 0.7, 2.0);
 	np_v7_caves_1 = NoiseParams(0, 12, v3f(100, 100, 100), 52534, 4, 0.5, 2.0);
 	np_v7_caves_2 = NoiseParams(0, 12, v3f(100, 100, 100), 10325, 4, 0.5, 2.0);
+	np_simple_caves_1 = NoiseParams(0, 1, v3f(64, 64, 64), -8402, 3, 0.5, 2.0);
+	np_simple_caves_2 = NoiseParams(0, 1, v3f(64, 64, 64), 3944, 3, 0.5, 2.0);
 	np_cliffs = NoiseParams(0, 1, v3f(750, 750, 750), 8445, 5, 1.0, 2.0);
 	np_corr = NoiseParams(0, 1, v3f(40, 40, 40), -3536, 4, 1.0, 2.0);
 
@@ -224,9 +228,13 @@ MapgenValleysParams::MapgenValleysParams()
 
 void MapgenValleysParams::readParams(const Settings *settings)
 {
+	settings->getFlagStrNoEx("mg_valleys_spflags", spflags, flagdesc_mapgen_valleys);
+
 	settings->getNoiseParams("mg_valleys_np_filler_depth",    np_filler_depth);
 	settings->getNoiseParams("mg_valleys_np_v7_caves_1",    np_v7_caves_1);
 	settings->getNoiseParams("mg_valleys_np_v7_caves_2",    np_v7_caves_2);
+	settings->getNoiseParams("mg_valleys_np_simple_caves_1",    np_v7_caves_1);
+	settings->getNoiseParams("mg_valleys_np_simple_caves_2",    np_v7_caves_2);
 	settings->getNoiseParams("mg_valleys_np_biome_heat", np_biome_heat);
 	settings->getNoiseParams("mg_valleys_np_biome_heat_blend", np_biome_heat_blend);
 	settings->getNoiseParams("mg_valleys_np_biome_humidity", np_biome_humidity);
@@ -281,6 +289,8 @@ void MapgenValleysParams::writeParams(Settings *settings) const
 	settings->setNoiseParams("mg_valleys_np_filler_depth",    np_filler_depth);
 	settings->setNoiseParams("mg_valleys_np_v7_caves_1",    np_v7_caves_1);
 	settings->setNoiseParams("mg_valleys_np_v7_caves_2",    np_v7_caves_2);
+	settings->setNoiseParams("mg_valleys_np_simple_caves_1",    np_v7_caves_1);
+	settings->setNoiseParams("mg_valleys_np_simple_caves_2",    np_v7_caves_2);
 	settings->setNoiseParams("mg_valleys_np_biome_heat", np_biome_heat);
 	settings->setNoiseParams("mg_valleys_np_biome_heat_blend", np_biome_heat_blend);
 	settings->setNoiseParams("mg_valleys_np_biome_humidity", np_biome_humidity);
@@ -363,7 +373,8 @@ void MapgenValleys::makeChunk(BlockMakeData *data)
 		if (spflags & MG_VALLEYS_V7_CAVES)
 			generateCaves(stone_surface_max_y);
 		else
-			generateVmgCaves(stone_surface_max_y);
+			generateSimpleCaves(stone_surface_max_y);
+			//generateVmgCaves(stone_surface_max_y);
 	}
 
 	if ((flags & MG_DUNGEONS) && node_max.Y < 50 && (stone_surface_max_y >= node_min.Y)) {
@@ -429,10 +440,10 @@ void MapgenValleys::makeChunk(BlockMakeData *data)
 		calcLighting(node_min - v3s16(0, 1, 0), node_max + v3s16(0, 1, 0),
 			full_node_min, full_node_max);
 
-	if (flags & MG_VALLEYS_PROFILE)
+	if (spflags & MG_VALLEYS_PROFILE)
 		printf("liquid_lighting: %dms\n", tll.stop());
 
-	if (flags & MG_VALLEYS_PROFILE)
+	if (spflags & MG_VALLEYS_PROFILE)
 		printf("makeChunk: %dms\n", t.stop());
 
 	this->generating = false;
@@ -538,6 +549,9 @@ void MapgenValleys::calculateNoise()
 			noise_v7_caves_1->perlinMap3D(x, y, z);
 			noise_v7_caves_2->perlinMap3D(x, y, z);
 		} else {
+			noise_simple_caves_1->perlinMap3D(x, y, z);
+			noise_simple_caves_2->perlinMap3D(x, y, z);
+#if 0
 			// way too many noise maps
 			noise_caves_1->perlinMap3D(x, y, z);
 			noise_caves_2->perlinMap3D(x, y, z);
@@ -552,10 +566,11 @@ void MapgenValleys::calculateNoise()
 				noise_water_1->perlinMap2D(x, z);
 				noise_water_2->perlinMap3D(x, y, z);
 			}
+#endif
 		}
 	}
 
-	if (flags & MG_VALLEYS_PROFILE)
+	if (spflags & MG_VALLEYS_PROFILE)
 		printf("actualNoise: %dms\n", tcn.stop());
 
 	for (s32 index = 0; index < csize.X * csize.Z; index++) {
@@ -930,6 +945,67 @@ void MapgenValleys::dustTopNodes()
 }
 
 
+void MapgenValleys::generateSimpleCaves(s16 max_stone_y)
+{
+	if (max_stone_y >= node_min.Y) {
+		u32 index = 0;
+		for (s16 z = node_min.Z; z <= node_max.Z; z++)
+		for (s16 y = node_min.Y-1; y <= node_max.Y+1; y++) {
+			u32 i = vm->m_area.index(node_min.X, y, z);
+			for (s16 x = node_min.X; x <= node_max.X; x++, i++, index++) {
+				bool n1 = (fabs(noise_simple_caves_1->result[index]) < 0.07);
+				bool n2 = (fabs(noise_simple_caves_2->result[index]) < 0.07);
+				content_t c = vm->m_data[i].getContent();
+				if (n1 && n2 && c != CONTENT_AIR && c != c_water_source) {
+					u16 sr = 1000;
+					content_t cb = vm->m_data[i - csize.X].getContent();
+					if (cb == c_stone)
+						sr = (u16) ((noise_simple_caves_1->result[index] + noise_simple_caves_2->result[index]) * 100000) % 1000;
+
+					if (y < lava_max_height && sr < ceil(-y / 10000))
+						vm->m_data[i] = MapNode(c_lava_source);
+					else if (y < 1 && sr < 4)
+						vm->m_data[i] = MapNode(c_water_source);
+					else
+						vm->m_data[i] = MapNode(CONTENT_AIR);
+				}
+			}
+		}
+	}
+}
+
+
+void MapgenValleys::generateCaves(s16 max_stone_y)
+{
+	if (max_stone_y >= node_min.Y) {
+		u32 index   = 0;
+
+		for (s16 z = node_min.Z; z <= node_max.Z; z++)
+		for (s16 y = node_min.Y - 1; y <= node_max.Y + 1; y++) {
+			u32 i = vm->m_area.index(node_min.X, y, z);
+			for (s16 x = node_min.X; x <= node_max.X; x++, i++, index++) {
+				float d1 = contour(noise_v7_caves_1->result[index]);
+				float d2 = contour(noise_v7_caves_2->result[index]);
+				if (d1 * d2 > 0.3) {
+					content_t c = vm->m_data[i].getContent();
+					if (!ndef->get(c).is_ground_content || c == CONTENT_AIR)
+						continue;
+
+					vm->m_data[i] = MapNode(CONTENT_AIR);
+				}
+			}
+		}
+	}
+
+	PseudoRandom ps(blockseed + 21343);
+	u32 bruises_count = (ps.range(1, 4) == 1) ? ps.range(1, 2) : 0;
+	for (u32 i = 0; i < bruises_count; i++) {
+		CaveValleys cave(this, &ps);
+		cave.makeCave(node_min, node_max, max_stone_y);
+	}
+}
+
+
 void MapgenValleys::generateVmgCaves(s16 max_stone_y)
 {
 	if (max_stone_y >= node_min.Y) {
@@ -992,32 +1068,3 @@ void MapgenValleys::generateVmgCaves(s16 max_stone_y)
 }
 
 
-void MapgenValleys::generateCaves(s16 max_stone_y)
-{
-	if (max_stone_y >= node_min.Y) {
-		u32 index   = 0;
-
-		for (s16 z = node_min.Z; z <= node_max.Z; z++)
-		for (s16 y = node_min.Y - 1; y <= node_max.Y + 1; y++) {
-			u32 i = vm->m_area.index(node_min.X, y, z);
-			for (s16 x = node_min.X; x <= node_max.X; x++, i++, index++) {
-				float d1 = contour(noise_v7_caves_1->result[index]);
-				float d2 = contour(noise_v7_caves_2->result[index]);
-				if (d1 * d2 > 0.3) {
-					content_t c = vm->m_data[i].getContent();
-					if (!ndef->get(c).is_ground_content || c == CONTENT_AIR)
-						continue;
-
-					vm->m_data[i] = MapNode(CONTENT_AIR);
-				}
-			}
-		}
-	}
-
-	PseudoRandom ps(blockseed + 21343);
-	u32 bruises_count = (ps.range(1, 4) == 1) ? ps.range(1, 2) : 0;
-	for (u32 i = 0; i < bruises_count; i++) {
-		CaveValleys cave(this, &ps);
-		cave.makeCave(node_min, node_max, max_stone_y);
-	}
-}
