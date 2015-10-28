@@ -220,8 +220,10 @@ public:
 
 	void Send(NetworkPacket* pkt);
 
-	// Environment must be locked when called
+	// Both setter and getter need no envlock,
+	// can be called freely from threads
 	void setTimeOfDay(u32 time);
+	inline u32 getTimeOfDay();
 
 	/*
 		Shall be called with the environment locked.
@@ -647,6 +649,8 @@ private:
 		Particles
 	*/
 	std::vector<u32> m_particlespawner_ids;
+
+	DISABLE_CLASS_COPY(Server);
 };
 
 /*

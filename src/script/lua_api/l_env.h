@@ -168,9 +168,6 @@ private:
 	// stops forceloading a position
 	static int l_forceload_free_block(lua_State *L);
 
-	// get us precision time
-	static int l_get_us_time(lua_State *L);
-
 public:
 	static void Initialize(lua_State *L, int top);
 };
@@ -184,16 +181,18 @@ private:
 	std::set<std::string> m_required_neighbors;
 	float m_trigger_interval;
 	u32 m_trigger_chance;
+	bool m_simple_catch_up;
 public:
 	LuaABM(lua_State *L, int id,
 			const std::set<std::string> &trigger_contents,
 			const std::set<std::string> &required_neighbors,
-			float trigger_interval, u32 trigger_chance):
+			float trigger_interval, u32 trigger_chance, bool simple_catch_up):
 		m_id(id),
 		m_trigger_contents(trigger_contents),
 		m_required_neighbors(required_neighbors),
 		m_trigger_interval(trigger_interval),
-		m_trigger_chance(trigger_chance)
+		m_trigger_chance(trigger_chance),
+		m_simple_catch_up(simple_catch_up)
 	{
 	}
 	virtual std::set<std::string> getTriggerContents()
@@ -211,6 +210,10 @@ public:
 	virtual u32 getTriggerChance()
 	{
 		return m_trigger_chance;
+	}
+	virtual bool getSimpleCatchUp()
+	{
+		return m_simple_catch_up;
 	}
 	virtual void trigger(ServerEnvironment *env, v3s16 p, MapNode n,
 			u32 active_object_count, u32 active_object_count_wider);

@@ -70,7 +70,7 @@ Environment::~Environment()
 
 void Environment::addPlayer(Player *player)
 {
-	DSTACK(__FUNCTION_NAME);
+	DSTACK(FUNCTION_NAME);
 	/*
 		Check that peer_ids are unique.
 		Also check that names are unique.
@@ -180,20 +180,21 @@ std::vector<Player*> Environment::getPlayers(bool ignore_disconnected)
 
 u32 Environment::getDayNightRatio()
 {
-	if(m_enable_day_night_ratio_override)
+	MutexAutoLock(this->m_time_lock);
+	if (m_enable_day_night_ratio_override)
 		return m_day_night_ratio_override;
-	return time_to_daynight_ratio(m_time_of_day_f*24000, m_cache_enable_shaders);
+	return time_to_daynight_ratio(m_time_of_day_f * 24000, m_cache_enable_shaders);
 }
 
 void Environment::setTimeOfDaySpeed(float speed)
 {
-	MutexAutoLock(this->m_timeofday_lock);
+	MutexAutoLock(this->m_time_lock);
 	m_time_of_day_speed = speed;
 }
 
 float Environment::getTimeOfDaySpeed()
 {
-	MutexAutoLock(this->m_timeofday_lock);
+	MutexAutoLock(this->m_time_lock);
 	float retval = m_time_of_day_speed;
 	return retval;
 }
@@ -221,29 +222,28 @@ float Environment::getTimeOfDayF()
 
 void Environment::stepTimeOfDay(float dtime)
 {
-	// getTimeOfDaySpeed lock the value we need to prevent MT problems
-	float day_speed = getTimeOfDaySpeed();
+	MutexAutoLock(this->m_time_lock);
 
 	m_time_counter += dtime;
-	f32 speed = day_speed * 24000./(24.*3600);
-	u32 units = (u32)(m_time_counter*speed);
+	f32 speed = m_time_of_day_speed * 24000. / (24. * 3600);
+	u32 units = (u32)(m_time_counter * speed);
 	bool sync_f = false;
-	if(units > 0){
+	if (units > 0) {
 		// Sync at overflow
-		if(m_time_of_day + units >= 24000)
+		if (m_time_of_day + units >= 24000)
 			sync_f = true;
 		m_time_of_day = (m_time_of_day + units) % 24000;
-		if(sync_f)
+		if (sync_f)
 			m_time_of_day_f = (float)m_time_of_day / 24000.0;
 	}
 	if (speed > 0) {
 		m_time_counter -= (f32)units / speed;
 	}
-	if(!sync_f){
-		m_time_of_day_f += day_speed/24/3600*dtime;
-		if(m_time_of_day_f > 1.0)
+	if (!sync_f) {
+		m_time_of_day_f += m_time_of_day_speed / 24 / 3600 * dtime;
+		if (m_time_of_day_f > 1.0)
 			m_time_of_day_f -= 1.0;
-		if(m_time_of_day_f < 0.0)
+		if (m_time_of_day_f < 0.0)
 			m_time_of_day_f += 1.0;
 	}
 }
@@ -577,17 +577,21 @@ public:
 				i->timer -= trigger_interval;
 				actual_interval = trigger_interval;
 			}
-			float intervals = actual_interval / trigger_interval;
-			if(intervals == 0)
-				continue;
 			float chance = abm->getTriggerChance();
 			if(chance == 0)
 				chance = 1;
 			ActiveABM aabm;
 			aabm.abm = abm;
-			aabm.chance = chance / intervals;
-			if(aabm.chance == 0)
-				aabm.chance = 1;
+			if(abm->getSimpleCatchUp()) {
+				float intervals = actual_interval / trigger_interval;
+				if(intervals == 0)
+					continue;
+				aabm.chance = chance / intervals;
+				if(aabm.chance == 0)
+					aabm.chance = 1;
+			} else {
+				aabm.chance = chance;
+			}
 			// Trigger neighbors
 			std::set<std::string> required_neighbors_s
 					= abm->getRequiredNeighbors();
@@ -982,7 +986,7 @@ void ServerEnvironment::clearAllObjects()
 
 void ServerEnvironment::step(float dtime)
 {
-	DSTACK(__FUNCTION_NAME);
+	DSTACK(FUNCTION_NAME);
 
 	//TimeTaker timer("ServerEnv step");
 
@@ -1188,7 +1192,7 @@ void ServerEnvironment::step(float dtime)
 		u32 time_ms = timer.stop(true);
 		u32 max_time_ms = 200;
 		if(time_ms > max_time_ms){
-			infostream<<"WARNING: active block modifiers took "
+			warningstream<<"active block modifiers took "
 					<<time_ms<<"ms (longer than "
 					<<max_time_ms<<"ms)"<<std::endl;
 			m_active_block_interval_overload_skip = (time_ms / max_time_ms) + 1;
@@ -1910,7 +1914,7 @@ void ServerEnvironment::deactivateFarObjects(bool force_delete)
 					// reason. Unsuccessful attempts have been made to find
 					// said reason.
 					if(id && block->m_static_objects.m_active.find(id) != block->m_static_objects.m_active.end()){
-						infostream<<"ServerEnv: WARNING: Performing hack #83274"
+						warningstream<<"ServerEnv: Performing hack #83274"
 								<<std::endl;
 						block->m_static_objects.remove(id);
 					}
@@ -2028,7 +2032,7 @@ ClientMap & ClientEnvironment::getClientMap()
 
 void ClientEnvironment::addPlayer(Player *player)
 {
-	DSTACK(__FUNCTION_NAME);
+	DSTACK(FUNCTION_NAME);
 	/*
 		It is a failure if player is local and there already is a local
 		player
@@ -2052,7 +2056,7 @@ LocalPlayer * ClientEnvironment::getLocalPlayer()
 
 void ClientEnvironment::step(float dtime)
 {
-	DSTACK(__FUNCTION_NAME);
+	DSTACK(FUNCTION_NAME);
 
 	/* Step time of day */
 	stepTimeOfDay(dtime);

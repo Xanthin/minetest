@@ -76,3 +76,18 @@ default:desert_sand 210 180 50
 default:desert_stone 150 100 30
 default:dry_shrub 100 80 40
 
+default:river_water_source 39 66 106
+default:river_water_flowing 39 66 106
+valleys_c:leaves2 48 95 8
+valleys_c:leaves3 48 95 8
+valleys_c:leaves4 48 95 8
+valleys_c:leaves5 48 95 8
+default:pine_needles 48 95 8
+valleys_c:pine_needles2 48 95 8
+valleys_c:pine_needles3 48 95 8
+valleys_c:pine_needles4 48 95 8
+#integral:leaves1 48 95 8
+#integral:leaves2 48 95 8
+#integral:leaves3 48 95 8
+#integral:leaves4 48 95 8
+#integral:leaves5 48 95 8
