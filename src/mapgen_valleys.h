@@ -37,6 +37,10 @@ class BiomeManager;
 
 extern FlagDesc flagdesc_mapgen_valleys[];
 
+// Global profiler
+class Profiler;
+extern Profiler *mapgen_profiler;
+
 
 struct MapgenValleysParams : public MapgenSpecificParams {
 	u32 spflags;

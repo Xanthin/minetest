@@ -43,15 +43,18 @@ See http://www.gnu.org/licenses/gpl-3.0.en.html
 #include "mapgen_valleys.h"
 
 #include "util/timetaker.h"
+#include "profiler.h"
 //#undef NDEBUG
 //#include "assert.h"
 
+
+static Profiler mapgen_prof;
+Profiler *mapgen_profiler = &mapgen_prof;
 
 FlagDesc flagdesc_mapgen_valleys[] = {
 	{"v7caves", MG_VALLEYS_V7_CAVES},
 	{"lava", MG_VALLEYS_LAVA},
 	{"groundwater", MG_VALLEYS_GROUND_WATER},
-	{"profile", MG_VALLEYS_PROFILE},
 	{NULL,        0}
 };
 
@@ -440,11 +443,8 @@ void MapgenValleys::makeChunk(BlockMakeData *data)
 		calcLighting(node_min - v3s16(0, 1, 0), node_max + v3s16(0, 1, 0),
 			full_node_min, full_node_max);
 
-	if (spflags & MG_VALLEYS_PROFILE)
-		printf("liquid_lighting: %dms\n", tll.stop());
-
-	if (spflags & MG_VALLEYS_PROFILE)
-		printf("makeChunk: %dms\n", t.stop());
+	mapgen_profiler->avg("liquid_lighting", tll.stop() / 1000.f);
+	mapgen_profiler->avg("makeChunk", t.stop() / 1000.f);
 
 	this->generating = false;
 }
@@ -570,8 +570,7 @@ void MapgenValleys::calculateNoise()
 		}
 	}
 
-	if (spflags & MG_VALLEYS_PROFILE)
-		printf("actualNoise: %dms\n", tcn.stop());
+	mapgen_profiler->avg("noisemaps", tcn.stop() / 1000.f);
 
 	for (s32 index = 0; index < csize.X * csize.Z; index++) {
 		noise_heat->result[index] += noise_heat_blend->result[index];
