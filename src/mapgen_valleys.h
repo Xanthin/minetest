@@ -164,6 +164,18 @@ public:
 	content_t c_sandstonebrick;
 	content_t c_stair_sandstonebrick;
 
+	content_t c_dirt;
+	content_t c_stalactite;
+	content_t c_stalagmite;
+	content_t c_fungal_stone;
+	content_t c_mushroom_fertile_red;
+	content_t c_mushroom_fertile_brown;
+	content_t c_huge_mushroom_cap;
+	content_t c_giant_mushroom_cap;
+	content_t c_giant_mushroom_stem;
+	content_t c_sand_with_rocks;
+	content_t c_arrow_arum;
+
 	MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *emerge);
 	~MapgenValleys();
 
@@ -183,6 +195,7 @@ public:
 	float humidityByTerrain(float humidity, float mount, float valley);
 
 	MgStoneType generateBiomes(float *heat_map, float *humidity_map);
+	void water_plants(float *heat_map, float *humidity_map);
 	void fixRivers(s16 sx, s16 sy, s16 *height_map);
 	void dustTopNodes();
 

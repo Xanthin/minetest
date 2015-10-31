@@ -144,6 +144,18 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 	c_sandstonebrick       = ndef->getId("mapgen_sandstonebrick");
 	c_stair_sandstonebrick = ndef->getId("mapgen_stair_sandstonebrick");
 
+	c_dirt                 = ndef->getId("mapgen_dirt");
+	c_stalactite           = ndef->getId("valleys_c:stalactite");
+	c_stalagmite           = ndef->getId("valleys_c:stalagmite");
+	c_fungal_stone         = ndef->getId("valleys_c:glowing_fungal_stone");
+	c_mushroom_fertile_red = ndef->getId("flowers:mushroom_fertile_red");
+	c_mushroom_fertile_brown = ndef->getId("flowers:mushroom_fertile_brown");
+	c_huge_mushroom_cap    = ndef->getId("valleys_c:huge_mushroom_cap");
+	c_giant_mushroom_cap   = ndef->getId("valleys_c:giant_mushroom_cap");
+	c_giant_mushroom_stem  = ndef->getId("valleys_c:giant_mushroom_stem");
+	c_sand_with_rocks      = ndef->getId("valleys_c:sand_with_rocks");
+	c_arrow_arum           = ndef->getId("valleys_c:arrow_arum_water");
+
 	if (c_ice == CONTENT_IGNORE)
 		c_ice = CONTENT_AIR;
 	if (c_mossycobble == CONTENT_IGNORE)
@@ -158,6 +170,26 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 		c_river_water_source = c_water_source;
 	if (c_sand == CONTENT_IGNORE)
 		c_sand = c_stone;
+	if (c_stalactite == CONTENT_IGNORE)
+		c_stalactite = CONTENT_AIR;
+	if (c_stalagmite == CONTENT_IGNORE)
+		c_stalagmite = CONTENT_AIR;
+	if (c_fungal_stone == CONTENT_IGNORE)
+		c_fungal_stone = c_stone;
+	if (c_mushroom_fertile_red == CONTENT_IGNORE)
+		c_mushroom_fertile_red = CONTENT_AIR;
+	if (c_mushroom_fertile_brown == CONTENT_IGNORE)
+		c_mushroom_fertile_brown = CONTENT_AIR;
+	if (c_huge_mushroom_cap == CONTENT_IGNORE)
+		c_huge_mushroom_cap = CONTENT_AIR;
+	if (c_giant_mushroom_cap == CONTENT_IGNORE)
+		c_giant_mushroom_cap = CONTENT_AIR;
+	if (c_giant_mushroom_stem == CONTENT_IGNORE)
+		c_giant_mushroom_stem = CONTENT_AIR;
+	if (c_sand_with_rocks == CONTENT_IGNORE)
+		c_sand_with_rocks = c_sand;
+	if (c_arrow_arum == CONTENT_IGNORE)
+		c_arrow_arum = c_sand;
 }
 
 
@@ -371,6 +403,8 @@ void MapgenValleys::makeChunk(BlockMakeData *data)
 
 	// Actually place the biome-specific nodes
 	MgStoneType stone_type = generateBiomes(heatmap, humidmap);
+
+	water_plants(heatmap, humidmap);
 
 	if (flags & MG_CAVES) {
 		if (spflags & MG_VALLEYS_V7_CAVES)
@@ -741,6 +775,9 @@ int MapgenValleys::generateTerrain()
 	MapNode n_water(c_water_source);
 	MapNode n_river_water(c_river_water_source);
 	MapNode n_sand(c_sand);
+	MapNode n_sand_with_rocks(c_sand_with_rocks);
+
+	PseudoRandom ps(blockseed + 21343);
 
 	v3s16 em = vm->m_area.getExtent();
 	s16 surface_min_y = MAX_MAP_GENERATION_LIMIT;
@@ -764,10 +801,14 @@ int MapgenValleys::generateTerrain()
 		u32 i = vm->m_area.index(x, node_min.Y - 1, z);
 		for (s16 y = node_min.Y - 1; y <= node_max.Y + 1; y++) {
 			if (vm->m_data[i].getContent() == CONTENT_IGNORE) {
-				if (river_y > surface_y && y == surface_y + 1)
+				if (river_y > surface_y && y == surface_y + 1) {
 					// river bottom
-					vm->m_data[i] = n_sand;
-				else if (y <= surface_y)
+					u16 r = ps.range(1,4);
+					if (r == 1)
+						vm->m_data[i] = n_sand_with_rocks;
+					else
+						vm->m_data[i] = n_sand;
+				} else if (y <= surface_y)
 					// ground
 					vm->m_data[i] = n_stone;
 				else if (river_y > surface_y && y <= river_y)
@@ -784,6 +825,56 @@ int MapgenValleys::generateTerrain()
 	}
 
 	return surface_max_y;
+}
+
+
+void MapgenValleys::water_plants(float *heat_map, float *humidity_map)
+{
+	PseudoRandom ps(blockseed + 21343);
+	MapNode n_arrow_arum(c_arrow_arum);
+
+	v3s16 em = vm->m_area.getExtent();
+	u32 index = 0;
+
+	for (s16 z = node_min.Z; z <= node_max.Z; z++)
+	for (s16 x = node_min.X; x <= node_max.X; x++, index++) {
+		Biome *biome = NULL;
+		u32 i = vm->m_area.index(x, node_min.Y, z);
+		//content_t c_above = vm->m_data[vi + em.X].getContent();
+		//bool water_above = (c_above == c_water_source);
+
+		for (s16 y = node_min.Y; y < node_max.Y; y++) {
+			content_t c = vm->m_data[i].getContent();
+			u32 j = i;
+			vm->m_area.add_y(em, j, 1);
+			content_t ca = vm->m_data[j].getContent();
+
+			if (c == c_sand && (ca == c_water_source || ca == c_river_water_source)) {
+				// * Add biome checking and make this work with other plants.
+				//biome = bmgr->getBiome(heat_map[index], humidity_map[index], y);
+
+				u16 r = ps.range(1,20);
+				if (r < 3) {
+					bool surround = true;
+					for (s16 d = -1; d < 2; d+=2) {
+						u32 j = i;
+						u32 k = i;
+						vm->m_area.add_x(em, j, d);
+						vm->m_area.add_z(em, k, d);
+						content_t c1 = vm->m_data[j].getContent();
+						content_t c2 = vm->m_data[k].getContent();
+						if (c1 == c_water_source || c1 == c_river_water_source || c1 == CONTENT_AIR || c1 == CONTENT_IGNORE)
+							surround = false;
+						if (c2 == c_water_source || c2 == c_river_water_source || c2 == CONTENT_AIR || c2 == CONTENT_IGNORE)
+							surround = false;
+					}
+					if (surround)
+						vm->m_data[i] = n_arrow_arum;
+				}
+			}
+			vm->m_area.add_y(em, i, 1);
+		}
+	}
 }
 
 
@@ -946,30 +1037,90 @@ void MapgenValleys::dustTopNodes()
 
 void MapgenValleys::generateSimpleCaves(s16 max_stone_y)
 {
+	MapNode n_air(CONTENT_AIR);
+	MapNode n_dirt(c_dirt);
+	MapNode n_water(c_water_source);
+	MapNode n_lava(c_lava_source);
+	MapNode n_stalactite(c_stalactite);
+	MapNode n_stalagmite(c_stalagmite);
+	MapNode n_fungal_stone(c_fungal_stone);
+	MapNode n_mushroom_red(c_mushroom_fertile_red);
+	MapNode n_mushroom_brown(c_mushroom_fertile_brown);
+	MapNode n_cap_huge(c_huge_mushroom_cap);
+	MapNode n_cap_giant(c_giant_mushroom_cap);
+	MapNode n_stem(c_giant_mushroom_stem);
+
+	v3s16 em = vm->m_area.getExtent();
+	u16 sr = 1000;
+
 	if (max_stone_y >= node_min.Y) {
-		u32 index = 0;
 		for (s16 z = node_min.Z; z <= node_max.Z; z++)
-		for (s16 y = node_min.Y-1; y <= node_max.Y+1; y++) {
-			u32 i = vm->m_area.index(node_min.X, y, z);
-			for (s16 x = node_min.X; x <= node_max.X; x++, i++, index++) {
-				bool n1 = (fabs(noise_simple_caves_1->result[index]) < 0.07);
-				bool n2 = (fabs(noise_simple_caves_2->result[index]) < 0.07);
-				content_t c = vm->m_data[i].getContent();
-				if (n1 && n2 && c != CONTENT_AIR && c != c_water_source) {
-					u16 sr = 1000;
-					content_t cb = vm->m_data[i - csize.X].getContent();
-					if (cb == c_stone)
+			for (s16 x = node_min.X; x <= node_max.X; x++) {
+				u32 i = vm->m_area.index(x, node_max.Y + 1, z);
+				content_t ca = CONTENT_IGNORE;
+				u16 air_count = 0;
+				// Dig caves on down loop so you can check for stone above.
+				for (s16 y = node_max.Y+1; y >= node_min.Y-1; y--) {
+					u32 index = (z - node_min.Z) * csize.X * (csize.Y + 2) + (y - node_min.Y + 1) * csize.X + (x - node_min.X);
+
+					bool n1 = (fabs(noise_simple_caves_1->result[index]) < 0.07);
+					bool n2 = (fabs(noise_simple_caves_2->result[index]) < 0.07);
+
+					content_t c = vm->m_data[i].getContent();
+					if (n1 && n2 && c != CONTENT_AIR && c != c_water_source) {
+						sr = 1000;
+						if (ca == c_stone)
+							sr = (u16) ((noise_simple_caves_1->result[index] + noise_simple_caves_2->result[index]) * 100000) % 20;
+
+						if (sr == 0) {
+							u32 j = i;
+							vm->m_area.add_y(em, j, 1);
+							vm->m_data[j] = n_fungal_stone;
+							vm->m_data[i] = n_air;
+							air_count++;
+						} else if (sr < 4) {
+							vm->m_data[i] = n_stalactite;
+						} else {
+							vm->m_data[i] = n_air;
+							air_count++;
+						}
+					} else if (c == c_stone && air_count > 0) {
+						u32 j = i;
+						vm->m_area.add_y(em, j, 1);
 						sr = (u16) ((noise_simple_caves_1->result[index] + noise_simple_caves_2->result[index]) * 100000) % 1000;
 
-					if (y < lava_max_height && sr < ceil(-y / 10000))
-						vm->m_data[i] = MapNode(c_lava_source);
-					else if (y < 1 && sr < 4)
-						vm->m_data[i] = MapNode(c_water_source);
-					else
-						vm->m_data[i] = MapNode(CONTENT_AIR);
+						if (y < lava_max_height && sr < ceil(-y / 10000)) {
+							vm->m_data[j] = n_lava;
+						} else if (y < 1 && sr < 4) {
+							vm->m_data[j] = n_water;
+						} else if (sr < 24) {
+							vm->m_data[i] = n_dirt;
+							vm->m_data[j] = n_mushroom_red;
+						} else if (sr < 44) {
+							vm->m_data[i] = n_dirt;
+							vm->m_data[j] = n_mushroom_brown;
+						} else if (sr < 64 && air_count > 1) {
+							vm->m_data[i] = n_dirt;
+							vm->m_data[j] = n_stem;
+							vm->m_area.add_y(em, j, 1);
+							vm->m_data[j] = n_cap_huge;
+						} else if (sr < 84 && air_count > 2) {
+							vm->m_data[i] = n_dirt;
+							vm->m_data[j] = n_stem;
+							vm->m_area.add_y(em, j, 1);
+							vm->m_data[j] = n_stem;
+							vm->m_area.add_y(em, j, 1);
+							vm->m_data[j] = n_cap_giant;
+						} else if (sr < 344) {
+							vm->m_data[j] = n_stalagmite;
+						}
+						air_count = 0;
+					}
+
+					ca = vm->m_data[i].getContent();
+					vm->m_area.add_y(em, i, -1);
 				}
 			}
-		}
 	}
 }
 
