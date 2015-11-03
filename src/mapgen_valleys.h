@@ -84,6 +84,7 @@ struct MapgenValleysParams : public MapgenSpecificParams {
 	NoiseParams np_lava_2;
 	NoiseParams np_water_1;
 	NoiseParams np_water_2;
+	NoiseParams np_plant_1;
 
 	MapgenValleysParams();
 	~MapgenValleysParams() {}
@@ -135,6 +136,7 @@ public:
 	Noise *noise_lava_2;
 	Noise *noise_water_1;
 	Noise *noise_water_2;
+	Noise *noise_plant_1;
 	Noise *noise_cliffs;
 	Noise *noise_corr;
 
@@ -175,6 +177,7 @@ public:
 	content_t c_giant_mushroom_stem;
 	content_t c_sand_with_rocks;
 	content_t c_arrow_arum;
+	content_t c_waterlily;
 
 	MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *emerge);
 	~MapgenValleys();

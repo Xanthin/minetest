@@ -125,6 +125,7 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 	noise_lava_2 = new Noise(&sp->np_lava_2, seed, csize.X, csize.Y, csize.Z);
 	noise_water_1 = new Noise(&sp->np_water_1, seed, csize.X, csize.Y, csize.Z);
 	noise_water_2 = new Noise(&sp->np_water_2, seed, csize.X, csize.Y, csize.Z);
+	noise_plant_1 = new Noise(&sp->np_plant_1, seed, csize.X, csize.Z);
 
 	//// Resolve nodes to be used
 	INodeDefManager *ndef = emerge->ndef;
@@ -155,6 +156,7 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 	c_giant_mushroom_stem  = ndef->getId("valleys_c:giant_mushroom_stem");
 	c_sand_with_rocks      = ndef->getId("valleys_c:sand_with_rocks");
 	c_arrow_arum           = ndef->getId("valleys_c:arrow_arum_water");
+	c_waterlily           = ndef->getId("flowers:waterlily");
 
 	if (c_ice == CONTENT_IGNORE)
 		c_ice = CONTENT_AIR;
@@ -190,6 +192,8 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 		c_sand_with_rocks = c_sand;
 	if (c_arrow_arum == CONTENT_IGNORE)
 		c_arrow_arum = c_sand;
+	if (c_waterlily == CONTENT_IGNORE)
+		c_waterlily = c_water_source;
 }
 
 
@@ -220,6 +224,7 @@ MapgenValleys::~MapgenValleys()
 	delete noise_lava_2;
 	delete noise_water_1;
 	delete noise_water_2;
+	delete noise_plant_1;
 
 	delete[] heightmap;
 	delete[] biomemap;
@@ -258,6 +263,7 @@ MapgenValleysParams::MapgenValleysParams()
 	np_lava_2 = NoiseParams(0, 1, v3f(32, 32, 32), -89113, 4, 0.5, 2.0);
 	np_water_1 = NoiseParams(0, 1, v3f(32, 32, 32), 82329, 4, 0.5, 2.0);
 	np_water_2 = NoiseParams(0, 1, v3f(32, 32, 32), -59107, 4, 0.5, 2.0);
+	np_plant_1 = NoiseParams(0, 1, v3f(200, 200, 200), 33, 3, 0.7, 2.0);
 }
 
 
@@ -314,6 +320,7 @@ void MapgenValleysParams::readParams(const Settings *settings)
 	settings->getNoiseParams("mg_valleys_np_lava_2",    np_lava_2);
 	settings->getNoiseParams("mg_valleys_np_water_1",    np_water_1);
 	settings->getNoiseParams("mg_valleys_np_water_2",    np_water_2);
+	settings->getNoiseParams("mg_valleys_np_plant_1",    np_plant_1);
 }
 
 
@@ -359,6 +366,7 @@ void MapgenValleysParams::writeParams(Settings *settings) const
 	settings->setNoiseParams("mg_valleys_np_lava_2",    np_lava_2);
 	settings->setNoiseParams("mg_valleys_np_water_1",    np_water_1);
 	settings->setNoiseParams("mg_valleys_np_water_2",    np_water_2);
+	settings->setNoiseParams("mg_valleys_np_plant_1",    np_plant_1);
 }
 
 
@@ -518,6 +526,13 @@ void MapgenValleys::fixRivers(s16 sx, s16 sy, s16 *height_map)
 					}
 				}
 				if (!supported) {
+					if (river_y < node_max.Y) {
+						u32 i = vm->m_area.index(x, river_y+1, z);
+						content_t c = vm->m_data[i].getContent();
+						if (c == c_waterlily)
+							vm->m_data[i] = n_air;
+					}
+
 					for (s16 y = river_y; y >= node_min.Y; y--) {
 						u32 i = vm->m_area.index(x, y, z);
 						content_t c = vm->m_data[i].getContent();
@@ -577,6 +592,7 @@ void MapgenValleys::calculateNoise()
 	noise_inter_valley_fill->perlinMap2D(x, z);
 	noise_cliffs->perlinMap2D(x, z);
 	noise_corr->perlinMap2D(x, z);
+	noise_plant_1->perlinMap2D(x, z);
 
 	if (flags & MG_CAVES) {
 		if (spflags & MG_VALLEYS_V7_CAVES) {
@@ -830,18 +846,16 @@ int MapgenValleys::generateTerrain()
 
 void MapgenValleys::water_plants(float *heat_map, float *humidity_map)
 {
-	PseudoRandom ps(blockseed + 21343);
+	PseudoRandom ps(blockseed + 56439);
 	MapNode n_arrow_arum(c_arrow_arum);
+	MapNode n_waterlily(c_waterlily);
 
 	v3s16 em = vm->m_area.getExtent();
 	u32 index = 0;
 
 	for (s16 z = node_min.Z; z <= node_max.Z; z++)
 	for (s16 x = node_min.X; x <= node_max.X; x++, index++) {
-		Biome *biome = NULL;
 		u32 i = vm->m_area.index(x, node_min.Y, z);
-		//content_t c_above = vm->m_data[vi + em.X].getContent();
-		//bool water_above = (c_above == c_water_source);
 
 		for (s16 y = node_min.Y; y < node_max.Y; y++) {
 			content_t c = vm->m_data[i].getContent();
@@ -850,11 +864,7 @@ void MapgenValleys::water_plants(float *heat_map, float *humidity_map)
 			content_t ca = vm->m_data[j].getContent();
 
 			if (c == c_sand && (ca == c_water_source || ca == c_river_water_source)) {
-				// * Add biome checking and make this work with other plants.
-				//biome = bmgr->getBiome(heat_map[index], humidity_map[index], y);
-
-				u16 r = ps.range(1,20);
-				if (r < 3) {
+				if (noise_plant_1->result[index] < 0.1 && ps.range(1,20) < 5) {
 					bool surround = true;
 					for (s16 d = -1; d < 2; d+=2) {
 						u32 j = i;
@@ -868,10 +878,14 @@ void MapgenValleys::water_plants(float *heat_map, float *humidity_map)
 						if (c2 == c_water_source || c2 == c_river_water_source || c2 == CONTENT_AIR || c2 == CONTENT_IGNORE)
 							surround = false;
 					}
-					if (surround)
+					if (surround && ca == c_river_water_source && heat_map[index] > 35)
 						vm->m_data[i] = n_arrow_arum;
 				}
+			} else if (c == c_river_water_source && ca == CONTENT_AIR) {
+				if (heat_map[index] > 65 && fabs(noise_plant_1->result[index]) < 0.2 && ps.range(1,20) < 4)
+					vm->m_data[j] = n_waterlily;
 			}
+
 			vm->m_area.add_y(em, i, 1);
 		}
 	}
@@ -916,12 +930,7 @@ MgStoneType MapgenValleys::generateBiomes(float *heat_map, float *humidity_map)
 					((c == c_water_source || c == c_river_water_source) && (air_above || !biome))) {
 				// Both heat and humidity have already been adjusted for altitude.
 				biome = bmgr->getBiome(heat_map[index], humidity_map[index], y);
-#if 0
-				if (biome->index != biomemap[index])
-					printf("Biome change at %d,%d\n", x,z);
-				else
-					printf("No biome change at %d,%d\n", x,z);
-#endif
+
 				depth_top = biome->depth_top;
 				base_filler = MYMAX(depth_top + biome->depth_filler + noise_filler_depth->result[index], 0);
 				depth_water_top = biome->depth_water_top;
@@ -1037,6 +1046,8 @@ void MapgenValleys::dustTopNodes()
 
 void MapgenValleys::generateSimpleCaves(s16 max_stone_y)
 {
+	PseudoRandom ps(blockseed + 72202);
+
 	MapNode n_air(CONTENT_AIR);
 	MapNode n_dirt(c_dirt);
 	MapNode n_water(c_water_source);
@@ -1056,10 +1067,11 @@ void MapgenValleys::generateSimpleCaves(s16 max_stone_y)
 	if (max_stone_y >= node_min.Y) {
 		for (s16 z = node_min.Z; z <= node_max.Z; z++)
 			for (s16 x = node_min.X; x <= node_max.X; x++) {
-				u32 i = vm->m_area.index(x, node_max.Y + 1, z);
 				content_t ca = CONTENT_IGNORE;
+				bool underground = false;
 				u16 air_count = 0;
-				// Dig caves on down loop so you can check for stone above.
+				// Dig caves on down loop to check for stone above.
+				u32 i = vm->m_area.index(x, node_max.Y + 1, z);
 				for (s16 y = node_max.Y+1; y >= node_min.Y-1; y--) {
 					u32 index = (z - node_min.Z) * csize.X * (csize.Y + 2) + (y - node_min.Y + 1) * csize.X + (x - node_min.X);
 
@@ -1067,55 +1079,82 @@ void MapgenValleys::generateSimpleCaves(s16 max_stone_y)
 					bool n2 = (fabs(noise_simple_caves_2->result[index]) < 0.07);
 
 					content_t c = vm->m_data[i].getContent();
+					if (ca == c_stone || y < -10)
+						underground = true;
+
 					if (n1 && n2 && c != CONTENT_AIR && c != c_water_source) {
 						sr = 1000;
-						if (ca == c_stone)
-							sr = (u16) ((noise_simple_caves_1->result[index] + noise_simple_caves_2->result[index]) * 100000) % 20;
+						if (ca == c_stone) {
+							u32 index = (z - node_min.Z) * csize.X + (x - node_min.X);
+							sr = ps.range(0,99);
+							if (humidmap[index] > 0)
+								sr = (u16) (sr * 100.f / humidmap[index]);
+						}
 
-						if (sr == 0) {
+						if (sr < 4) {
 							u32 j = i;
 							vm->m_area.add_y(em, j, 1);
 							vm->m_data[j] = n_fungal_stone;
 							vm->m_data[i] = n_air;
 							air_count++;
-						} else if (sr < 4) {
+						} else if (sr < 19) {
 							vm->m_data[i] = n_stalactite;
 						} else {
 							vm->m_data[i] = n_air;
 							air_count++;
 						}
-					} else if (c == c_stone && air_count > 0) {
+					} else if (air_count > 0 && c == c_stone) {
 						u32 j = i;
 						vm->m_area.add_y(em, j, 1);
-						sr = (u16) ((noise_simple_caves_1->result[index] + noise_simple_caves_2->result[index]) * 100000) % 1000;
+						sr = ps.range(0,999);
+						if (humidmap[index] > 0)
+							sr = (u16) (sr * 100.f / humidmap[index]);
 
-						if (y < lava_max_height && sr < ceil(-y / 10000)) {
-							vm->m_data[j] = n_lava;
-						} else if (y < 1 && sr < 4) {
-							vm->m_data[j] = n_water;
-						} else if (sr < 24) {
-							vm->m_data[i] = n_dirt;
-							vm->m_data[j] = n_mushroom_red;
-						} else if (sr < 44) {
-							vm->m_data[i] = n_dirt;
-							vm->m_data[j] = n_mushroom_brown;
-						} else if (sr < 64 && air_count > 1) {
-							vm->m_data[i] = n_dirt;
-							vm->m_data[j] = n_stem;
-							vm->m_area.add_y(em, j, 1);
-							vm->m_data[j] = n_cap_huge;
-						} else if (sr < 84 && air_count > 2) {
-							vm->m_data[i] = n_dirt;
-							vm->m_data[j] = n_stem;
-							vm->m_area.add_y(em, j, 1);
-							vm->m_data[j] = n_stem;
-							vm->m_area.add_y(em, j, 1);
-							vm->m_data[j] = n_cap_giant;
-						} else if (sr < 344) {
-							vm->m_data[j] = n_stalagmite;
+						if (!underground) {
+							u32 index = (z - node_min.Z) * csize.X + (x - node_min.X);
+							Biome *biome = (Biome *)bmgr->getRaw(biomemap[index]);
+							vm->m_data[i] = MapNode(biome->c_filler);
+							underground = true;
+						} else if (sr < 3) {
+							if (y < 1)
+								vm->m_data[j] = n_water;
+						} else if (sr < 33) {
+							if (y < -10) {
+								vm->m_data[i] = n_dirt;
+								vm->m_data[j] = n_mushroom_red;
+							}
+						} else if (sr < 63) {
+							if (y < -10) {
+								vm->m_data[i] = n_dirt;
+								vm->m_data[j] = n_mushroom_brown;
+							}
+						} else if (sr < 83) {
+							if (y < -25 && air_count > 1) {
+								vm->m_data[i] = n_dirt;
+								vm->m_data[j] = n_stem;
+								vm->m_area.add_y(em, j, 1);
+								vm->m_data[j] = n_cap_huge;
+							}
+						} else if (sr < 93) {
+							if (y < -50 && air_count > 2) {
+								vm->m_data[i] = n_dirt;
+								vm->m_data[j] = n_stem;
+								vm->m_area.add_y(em, j, 1);
+								vm->m_data[j] = n_stem;
+								vm->m_area.add_y(em, j, 1);
+								vm->m_data[j] = n_cap_giant;
+							}
+						} else if (sr < 243) {
+							if (y < -10)
+								vm->m_data[j] = n_stalagmite;
+						} else if (sr < 1000 && 999 - sr < ceil(-y / 10000.f)) {
+							if (y < lava_max_height)
+								vm->m_data[j] = n_lava;
 						}
-						air_count = 0;
 					}
+
+					if (!(n1 && n2))
+						air_count = 0;
 
 					ca = vm->m_data[i].getContent();
 					vm->m_area.add_y(em, i, -1);
