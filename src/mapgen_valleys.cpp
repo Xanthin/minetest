@@ -193,7 +193,7 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 	if (c_arrow_arum == CONTENT_IGNORE)
 		c_arrow_arum = c_sand;
 	if (c_waterlily == CONTENT_IGNORE)
-		c_waterlily = c_water_source;
+		c_waterlily = CONTENT_AIR;
 }
 
 
@@ -241,7 +241,7 @@ MapgenValleysParams::MapgenValleysParams()
 	np_simple_caves_1 = NoiseParams(0, 1, v3f(64, 64, 64), -8402, 3, 0.5, 2.0);
 	np_simple_caves_2 = NoiseParams(0, 1, v3f(64, 64, 64), 3944, 3, 0.5, 2.0);
 	np_cliffs = NoiseParams(0, 1, v3f(750, 750, 750), 8445, 5, 1.0, 2.0);
-	np_corr = NoiseParams(0, 1, v3f(40, 40, 40), -3536, 4, 1.0, 2.0);
+	np_corr = NoiseParams(0, 1, v3f(32, 32, 32), -3536, 4, 1.0, 2.0);
 
 	np_biome_heat = NoiseParams(60, 50, v3f(750.0, 750.0, 750.0), 5349, 3, 0.5, 2.0);
 	np_biome_heat_blend = NoiseParams(0, 1.5, v3f(8.0, 8.0, 8.0), 13, 2, 1.0, 2.0);
@@ -254,7 +254,7 @@ MapgenValleysParams::MapgenValleysParams()
 	np_valley_depth = NoiseParams(5, 4, v3f(512, 512, 512), -1914, 1, 1.0, 2.0);
 	np_valley_profile = NoiseParams(0.6, 0.5, v3f(512, 512, 512), 777, 1, 1.0, 2.0);
 	np_inter_valley_slope = NoiseParams(0.5, 0.5, v3f(128, 128, 128), 746, 1, 1.0, 2.0);
-	np_inter_valley_fill = NoiseParams(0, 1, v3f(768, 768, 768), 1993, 6, 0.8, 2.0);
+	np_inter_valley_fill = NoiseParams(0, 1, v3f(256, 256, 256), 1993, 6, 0.8, 2.0);
 	np_caves_1 = NoiseParams(0, 1, v3f(32, 32, 32), -4640, 4, 0.5, 2.0);
 	np_caves_2 = NoiseParams(0, 1, v3f(32, 32, 32), 8804, 4, 0.5, 2.0);
 	np_caves_3 = NoiseParams(0, 1, v3f(32, 32, 32), -4780, 4, 0.5, 2.0);
@@ -546,6 +546,7 @@ void MapgenValleys::fixRivers(s16 sx, s16 sy, s16 *height_map)
 				if (!supported)
 					continue;
 
+#if 0
 				// Try to keep the rivers from overflowing.
 				// Look at the neighbor heights.
 				for (s16 z1 = -2; z1 <= 2; z1++)
@@ -563,6 +564,7 @@ void MapgenValleys::fixRivers(s16 sx, s16 sy, s16 *height_map)
 									}
 						}
 					}
+#endif
 			}
 		}
 }
@@ -700,20 +702,26 @@ float MapgenValleys::baseGroundFromNoise(s16 x, s16 z, float valley_depth, float
 
 		// base - depth : height of the bottom of the river
 		// water_level - 2 : don't make rivers below 2 nodes under the surface
-		mount = fmin(fmax(mount - depth, water_level - 2), mount);
+		mount = fmin(fmax(base - depth, water_level - 2), mount);
 
 		// Slope has no influence on rivers.
 		slope = 0;
 	}
 
-	// The penultimate step builds up the heights, but we skip it 
+	// The penultimate step builds up the heights, but we reduce it 
 	//  occasionally to create cliffs.
 	float delta = inter_valley_fill * slope;
-	if (cliffs < 0.2)
-		mount += delta;
+	if (delta != 0) {
+		if (cliffs < 0.2)
+			mount += delta;
+		else
+			mount += delta * 0.75;
 
-	// Use yet another noise to make the mountains look more rugged.
-	mount += fmin(3.0, (delta / 2)) * sin(corr);
+		// Use yet another noise to make the mountains look more rugged.
+		if (slope > 3) {
+			mount -= (delta / fabs(delta)) * pow(fabs(delta), 0.5) * fabs(sin(corr));
+		}
+	}
 
 	return mount;
 }
@@ -827,7 +835,7 @@ int MapgenValleys::generateTerrain()
 				} else if (y <= surface_y)
 					// ground
 					vm->m_data[i] = n_stone;
-				else if (river_y > surface_y && y <= river_y)
+				else if (river_y > surface_y && y < river_y)
 					// river
 					vm->m_data[i] = n_river_water;
 				else if (y <= water_level)
@@ -1195,6 +1203,7 @@ void MapgenValleys::generateCaves(s16 max_stone_y)
 }
 
 
+#if 0
 void MapgenValleys::generateVmgCaves(s16 max_stone_y)
 {
 	if (max_stone_y >= node_min.Y) {
@@ -1255,5 +1264,6 @@ void MapgenValleys::generateVmgCaves(s16 max_stone_y)
 				}
 	}
 }
+#endif
 
 
