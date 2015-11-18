@@ -250,11 +250,11 @@ MapgenValleysParams::MapgenValleysParams()
 
 	// vmg noises
 	np_terrain_height = NoiseParams(-10, 50, v3f(1024, 1024, 1024), 5202, 6, 0.4, 2.0);
-	np_rivers = NoiseParams(0, 1, v3f(256, 256, 256), -6050, 5, 0.6, 2.0);
-	np_valley_depth = NoiseParams(5, 4, v3f(512, 512, 512), -1914, 1, 1.0, 2.0);
+	np_rivers = NoiseParams(0, 1, v3f(512, 512, 512), -6050, 5, 0.6, 2.0);
+	np_valley_depth = NoiseParams(5, 5, v3f(1024, 1024, 1024), -1914, 1, 1.0, 2.0);
 	np_valley_profile = NoiseParams(0.6, 0.5, v3f(512, 512, 512), 777, 1, 1.0, 2.0);
 	np_inter_valley_slope = NoiseParams(0.5, 0.5, v3f(128, 128, 128), 746, 1, 1.0, 2.0);
-	np_inter_valley_fill = NoiseParams(0, 1, v3f(256, 256, 256), 1993, 6, 0.8, 2.0);
+	np_inter_valley_fill = NoiseParams(0, 1, v3f(512, 512, 512), 1993, 6, 0.8, 2.0);
 	np_caves_1 = NoiseParams(0, 1, v3f(32, 32, 32), -4640, 4, 0.5, 2.0);
 	np_caves_2 = NoiseParams(0, 1, v3f(32, 32, 32), 8804, 4, 0.5, 2.0);
 	np_caves_3 = NoiseParams(0, 1, v3f(32, 32, 32), -4780, 4, 0.5, 2.0);
@@ -288,7 +288,7 @@ void MapgenValleysParams::readParams(const Settings *settings)
 	if (!settings->getS16NoEx("mg_valleys_river_size", river_size))
 		river_size = 5;  // How wide to make rivers.
 	if (!settings->getS16NoEx("mg_valleys_river_depth", river_depth))
-		river_depth = 4;  // How deep to carve river channels.
+		river_depth = 5;  // How deep to carve river channels.
 	if (!settings->getS16NoEx("mg_valleys_water_level", water_level))
 		water_level = 1;  // Sea-level.
 	if (!settings->getS16NoEx("mg_valleys_altitude_chill", altitude_chill))
@@ -710,16 +710,16 @@ float MapgenValleys::baseGroundFromNoise(s16 x, s16 z, float valley_depth, float
 
 	// The penultimate step builds up the heights, but we reduce it 
 	//  occasionally to create cliffs.
-	float delta = inter_valley_fill * slope;
+	float delta = sin(inter_valley_fill) * slope;
 	if (delta != 0) {
 		if (cliffs < 0.2)
 			mount += delta;
 		else
-			mount += delta * 0.75;
+			mount += delta * 0.66;
 
 		// Use yet another noise to make the mountains look more rugged.
-		if (slope > 3) {
-			mount -= (delta / fabs(delta)) * pow(fabs(delta), 0.5) * fabs(sin(corr));
+		if (mount > water_level && fabs(inter_valley_slope * inter_valley_fill) < 0.3) {
+			mount += (delta / fabs(delta)) * pow(fabs(delta), 0.5) * fabs(sin(corr));
 		}
 	}
 
@@ -732,8 +732,8 @@ float MapgenValleys::humidityByTerrain(float humidity, float mount, float valley
 	humidity += humidity_adjust;
 	if (mount > water_level) {
 		// humidity is usually higher near water.
-		float sea_water = pow(0.5, fmax((mount - water_level) / 6, 0));
-		float river_water = pow(0.5, fmax(valley / 3, 0));
+		float sea_water = pow(0.5, fmax((mount - water_level) / 12, 0));
+		float river_water = pow(0.5, fmax(valley / 12, 0));
 		sea_water /= 2;
 		float water = sea_water + (1 - sea_water) * river_water;
 		humidity = fmax(humidity, (65 * water));
