@@ -216,6 +216,8 @@ MapgenValleys::~MapgenValleys()
 	delete noise_corr;
 	delete noise_v7_caves_1;
 	delete noise_v7_caves_2;
+	delete noise_simple_caves_1;
+	delete noise_simple_caves_2;
 	delete noise_caves_1;
 	delete noise_caves_2;
 	delete noise_caves_3;
