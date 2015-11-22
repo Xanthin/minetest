@@ -28,7 +28,7 @@ See http://www.gnu.org/licenses/gpl-3.0.en.html
 #include "mapgen.h"
 
 /////////////////// Mapgen Valleys flags
-#define MG_VALLEYS_V7_CAVES 0x01
+//#define MG_VALLEYS_V7_CAVES 0x01
 #define MG_VALLEYS_LAVA 0x02
 #define MG_VALLEYS_GROUND_WATER 0x04
 #define MG_VALLEYS_PROFILE 0x08
@@ -49,12 +49,9 @@ struct MapgenValleysParams : public MapgenSpecificParams {
 	s16 river_depth;
 	s16 water_level;
 	s16 altitude_chill;
-	s16 cave_size;
 	s16 humidity;
 	s16 temperature;
 	s16 lava_max_height;
-	s16 lava_frequency;
-	s16 ground_water_frequency;
 
 	NoiseParams np_filler_depth;
 	NoiseParams np_biome_heat;
@@ -71,19 +68,10 @@ struct MapgenValleysParams : public MapgenSpecificParams {
 	NoiseParams np_valley_profile;
 	NoiseParams np_inter_valley_slope;
 	NoiseParams np_inter_valley_fill;
-	NoiseParams np_v7_caves_1;
-	NoiseParams np_v7_caves_2;
+	//NoiseParams np_v7_caves_1;
+	//NoiseParams np_v7_caves_2;
 	NoiseParams np_simple_caves_1;
 	NoiseParams np_simple_caves_2;
-	NoiseParams np_caves_1;
-	NoiseParams np_caves_2;
-	NoiseParams np_caves_3;
-	NoiseParams np_caves_4;
-	NoiseParams np_stala;
-	NoiseParams np_lava_1;
-	NoiseParams np_lava_2;
-	NoiseParams np_water_1;
-	NoiseParams np_water_2;
 	NoiseParams np_plant_1;
 
 	MapgenValleysParams();
@@ -107,7 +95,7 @@ public:
 	v3s16 full_node_min;
 	v3s16 full_node_max;
 
-	s16 *ridge_heightmap;
+	//s16 *ridge_heightmap;
 
 	Noise *noise_filler_depth;
 
@@ -123,33 +111,21 @@ public:
 	Noise *noise_valley_profile;
 	Noise *noise_inter_valley_slope;
 	Noise *noise_inter_valley_fill;
-	Noise *noise_v7_caves_1;
-	Noise *noise_v7_caves_2;
+	//Noise *noise_v7_caves_1;
+	//Noise *noise_v7_caves_2;
 	Noise *noise_simple_caves_1;
 	Noise *noise_simple_caves_2;
-	Noise *noise_caves_1;
-	Noise *noise_caves_2;
-	Noise *noise_caves_3;
-	Noise *noise_caves_4;
-	Noise *noise_stala;
-	Noise *noise_lava_1;
-	Noise *noise_lava_2;
-	Noise *noise_water_1;
-	Noise *noise_water_2;
 	Noise *noise_plant_1;
 	Noise *noise_cliffs;
 	Noise *noise_corr;
 
 	float altitude_chill;
 	float river_size;
-	float cave_size;
 	float river_depth;
 	float water_level;
 	float humidity_adjust;
 	float temperature_adjust;
 	float lava_max_height;
-	float lava_frequency;
-	float ground_water_frequency;
 
 	content_t c_stone;
 	content_t c_water_source;
@@ -204,9 +180,8 @@ public:
 
 	//void addTopNodes();
 
-	void generateCaves(s16 max_stone_y);
 	void generateSimpleCaves(s16 max_stone_y);
-	void generateVmgCaves(s16 max_stone_y);
+	//void generateVmgCaves(s16 max_stone_y);
 };
 
 struct MapgenFactoryValleys : public MapgenFactory {

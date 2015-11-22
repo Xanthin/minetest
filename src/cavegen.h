@@ -166,9 +166,9 @@ public:
 };
 
 template class CaveV7plus<MapgenV7>;
-template class CaveV7plus<MapgenValleys>;
+//template class CaveV7plus<MapgenValleys>;
 typedef CaveV7plus<MapgenV7> CaveV7;
-typedef CaveV7plus<MapgenValleys> CaveValleys;
+//typedef CaveV7plus<MapgenValleys> CaveValleys;
 
 class CaveFractal {
 public:
