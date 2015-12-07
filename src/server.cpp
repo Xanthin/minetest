@@ -148,7 +148,8 @@ Server::Server(
 		const std::string &path_world,
 		const SubgameSpec &gamespec,
 		bool simple_singleplayer_mode,
-		bool ipv6
+		bool ipv6,
+		ChatInterface *iface
 	):
 	m_path_world(path_world),
 	m_gamespec(gamespec),
@@ -175,6 +176,7 @@ Server::Server(
 	m_clients(&m_con),
 	m_shutdown_requested(false),
 	m_shutdown_ask_reconnect(false),
+	m_admin_chat(iface),
 	m_ignore_map_edit_events(false),
 	m_ignore_map_edit_events_peer_id(0),
 	m_next_sound_id(0)
@@ -276,11 +278,8 @@ Server::Server(
 	m_script = new GameScripting(this);
 
 	std::string script_path = getBuiltinLuaPath() + DIR_DELIM "init.lua";
-	std::string error_msg;
 
-	if (!m_script->loadMod(script_path, BUILTIN_MOD_NAME, &error_msg))
-		throw ModError("Failed to load and run " + script_path
-				+ "\nError from Lua:\n" + error_msg);
+	m_script->loadMod(script_path, BUILTIN_MOD_NAME);
 
 	// Print mods
 	infostream << "Server: Loading mods: ";
@@ -291,26 +290,18 @@ Server::Server(
 	}
 	infostream << std::endl;
 	// Load and run "mod" scripts
-	for (std::vector<ModSpec>::iterator i = m_mods.begin();
-			i != m_mods.end(); ++i) {
-		const ModSpec &mod = *i;
+	for (std::vector<ModSpec>::iterator it = m_mods.begin();
+			it != m_mods.end(); ++it) {
+		const ModSpec &mod = *it;
 		if (!string_allowed(mod.name, MODNAME_ALLOWED_CHARS)) {
-			std::ostringstream err;
-			err << "Error loading mod \"" << mod.name
-					<< "\": mod_name does not follow naming conventions: "
-					<< "Only chararacters [a-z0-9_] are allowed." << std::endl;
-			errorstream << err.str().c_str();
-			throw ModError(err.str());
+			throw ModError("Error loading mod \"" + mod.name +
+				"\": Mod name does not follow naming conventions: "
+				"Only chararacters [a-z0-9_] are allowed.");
 		}
-		std::string script_path = mod.path + DIR_DELIM "init.lua";
+		std::string script_path = mod.path + DIR_DELIM + "init.lua";
 		infostream << "  [" << padStringRight(mod.name, 12) << "] [\""
 				<< script_path << "\"]" << std::endl;
-		if (!m_script->loadMod(script_path, mod.name, &error_msg)) {
-			errorstream << "Server: Failed to load and run "
-					<< script_path << std::endl;
-			throw ModError("Failed to load and run " + script_path
-					+ "\nError from Lua:\n" + error_msg);
-		}
+		m_script->loadMod(script_path, mod.name);
 	}
 
 	// Read Textures and calculate sha1 sums
@@ -483,7 +474,7 @@ void Server::step(float dtime)
 {
 	DSTACK(FUNCTION_NAME);
 	// Limit a bit
-	if(dtime > 2.0)
+	if (dtime > 2.0)
 		dtime = 2.0;
 	{
 		MutexAutoLock lock(m_step_dtime_mutex);
@@ -491,19 +482,13 @@ void Server::step(float dtime)
 	}
 	// Throw if fatal error occurred in thread
 	std::string async_err = m_async_fatal_error.get();
-	if(async_err != "") {
-		if (m_simple_singleplayer_mode) {
-			throw ServerError(async_err);
-		}
-		else {
+	if (!async_err.empty()) {
+		if (!m_simple_singleplayer_mode) {
 			m_env->kickAllPlayers(SERVER_ACCESSDENIED_CRASH,
 				g_settings->get("kick_msg_crash"),
 				g_settings->getBool("ask_reconnect_on_crash"));
-			errorstream << "UNRECOVERABLE error occurred. Stopping server. "
-					<< "Please fix the following error:" << std::endl
-					<< async_err << std::endl;
-			FATAL_ERROR(async_err.c_str());
 		}
+		throw ServerError(async_err);
 	}
 }
 
@@ -590,6 +575,22 @@ void Server::AsyncRunStep(bool initial_step)
 		m_env->getMap().timerUpdate(map_timer_and_unload_dtime,
 			g_settings->getFloat("server_unload_unused_data_timeout"),
 			U32_MAX);
+	}
+
+	/*
+		Listen to the admin chat, if available
+	*/
+	if (m_admin_chat) {
+		if (!m_admin_chat->command_queue.empty()) {
+			MutexAutoLock lock(m_env_mutex);
+			while (!m_admin_chat->command_queue.empty()) {
+				ChatEvent *evt = m_admin_chat->command_queue.pop_frontNoEx();
+				handleChatInterfaceEvent(evt);
+				delete evt;
+			}
+		}
+		m_admin_chat->outgoing_queue.push_back(
+			new ChatEventTimeInfo(m_env->getGameTime(), m_env->getTimeOfDay()));
 	}
 
 	/*
@@ -1117,16 +1118,19 @@ PlayerSAO* Server::StageTwoClientInit(u16 peer_id)
 
 		// Send information about joining in chat
 		{
-			std::wstring name = L"unknown";
+			std::string name = "unknown";
 			Player *player = m_env->getPlayer(peer_id);
 			if(player != NULL)
-				name = narrow_to_wide(player->getName());
+				name = player->getName();
 
 			std::wstring message;
 			message += L"*** ";
-			message += name;
+			message += narrow_to_wide(name);
 			message += L" joined the game.";
 			SendChatMessage(PEER_ID_INEXISTENT,message);
+			if (m_admin_chat)
+				m_admin_chat->outgoing_queue.push_back(
+					new ChatEventNick(CET_NICK_ADD, name));
 		}
 	}
 	Address addr = getPeerAddress(player->peer_id);
@@ -1247,11 +1251,6 @@ void Server::setTimeOfDay(u32 time)
 {
 	m_env->setTimeOfDay(time);
 	m_time_of_day_send_timer = 0;
-}
-
-u32 Server::getTimeOfDay()
-{
-	return m_env->getTimeOfDay();
 }
 
 void Server::onMapEditEvent(MapEditEvent *event)
@@ -1451,6 +1450,16 @@ void Server::handlePeerChanges()
 			FATAL_ERROR("Invalid peer change event received!");
 			break;
 		}
+	}
+}
+
+void Server::printToConsoleOnly(const std::string &text)
+{
+	if (m_admin_chat) {
+		m_admin_chat->outgoing_queue.push_back(
+			new ChatEventChat("", utf8_to_wide(text)));
+	} else {
+		std::cout << text << std::endl;
 	}
 }
 
@@ -2687,9 +2696,13 @@ void Server::DeleteClient(u16 peer_id, ClientDeletionReason reason)
 					os << player->getName() << " ";
 				}
 
-				actionstream << player->getName() << " "
+				std::string name = player->getName();
+				actionstream << name << " "
 						<< (reason == CDR_TIMEOUT ? "times out." : "leaves game.")
 						<< " List of players: " << os.str() << std::endl;
+				if (m_admin_chat)
+					m_admin_chat->outgoing_queue.push_back(
+						new ChatEventNick(CET_NICK_REMOVE, name));
 			}
 		}
 		{
@@ -2720,6 +2733,102 @@ void Server::UpdateCrafting(Player* player)
 	sanity_check(plist);
 	sanity_check(plist->getSize() >= 1);
 	plist->changeItem(0, preview);
+}
+
+void Server::handleChatInterfaceEvent(ChatEvent *evt)
+{
+	if (evt->type == CET_NICK_ADD) {
+		// The terminal informed us of its nick choice
+		m_admin_nick = ((ChatEventNick *)evt)->nick;
+		if (!m_script->getAuth(m_admin_nick, NULL, NULL)) {
+			errorstream << "You haven't set up an account." << std::endl
+				<< "Please log in using the client as '"
+				<< m_admin_nick << "' with a secure password." << std::endl
+				<< "Until then, you can't execute admin tasks via the console," << std::endl
+				<< "and everybody can claim the user account instead of you," << std::endl
+				<< "giving them full control over this server." << std::endl;
+		}
+	} else {
+		assert(evt->type == CET_CHAT);
+		handleAdminChat((ChatEventChat *)evt);
+	}
+}
+
+std::wstring Server::handleChat(const std::string &name, const std::wstring &wname,
+	const std::wstring &wmessage, bool check_shout_priv,
+	u16 peer_id_to_avoid_sending)
+{
+	// If something goes wrong, this player is to blame
+	RollbackScopeActor rollback_scope(m_rollback,
+		std::string("player:") + name);
+
+	// Line to send
+	std::wstring line;
+	// Whether to send line to the player that sent the message, or to all players
+	bool broadcast_line = true;
+
+	// Run script hook
+	bool ate = m_script->on_chat_message(name,
+		wide_to_utf8(wmessage));
+	// If script ate the message, don't proceed
+	if (ate)
+		return L"";
+
+	// Commands are implemented in Lua, so only catch invalid
+	// commands that were not "eaten" and send an error back
+	if (wmessage[0] == L'/') {
+		std::wstring wcmd = wmessage.substr(1);
+		broadcast_line = false;
+		if (wcmd.length() == 0)
+			line += L"-!- Empty command";
+		else
+			line += L"-!- Invalid command: " + str_split(wcmd, L' ')[0];
+	} else {
+		if (check_shout_priv && !checkPriv(name, "shout")) {
+			line += L"-!- You don't have permission to shout.";
+			broadcast_line = false;
+		} else {
+			line += L"<";
+			line += wname;
+			line += L"> ";
+			line += wmessage;
+		}
+	}
+
+	/*
+		Tell calling method to send the message to sender
+	*/
+	if (!broadcast_line) {
+		return line;
+	} else {
+		/*
+			Send the message to others
+		*/
+		actionstream << "CHAT: " << wide_to_narrow(line) << std::endl;
+
+		std::vector<u16> clients = m_clients.getClientIDs();
+
+		for (u16 i = 0; i < clients.size(); i++) {
+			u16 cid = clients[i];
+			if (cid != peer_id_to_avoid_sending)
+				SendChatMessage(cid, line);
+		}
+	}
+	return L"";
+}
+
+void Server::handleAdminChat(const ChatEventChat *evt)
+{
+	std::string name = evt->nick;
+	std::wstring wname = utf8_to_wide(name);
+	std::wstring wmessage = evt->evt_msg;
+
+	std::wstring answer = handleChat(name, wname, wmessage);
+
+	// If asked to send answer to sender
+	if (!answer.empty()) {
+		m_admin_chat->outgoing_queue.push_back(new ChatEventChat("", answer));
+	}
 }
 
 RemoteClient* Server::getClient(u16 peer_id, ClientState state_min)
@@ -2853,9 +2962,14 @@ void Server::notifyPlayer(const char *name, const std::wstring &msg)
 	if (!m_env)
 		return;
 
+	if (m_admin_nick == name && !m_admin_nick.empty()) {
+		m_admin_chat->outgoing_queue.push_back(new ChatEventChat("", msg));
+	}
+
 	Player *player = m_env->getPlayer(name);
-	if (!player)
+	if (!player) {
 		return;
+	}
 
 	if (player->peer_id == PEER_ID_INEXISTENT)
 		return;
@@ -2920,7 +3034,8 @@ bool Server::hudSetFlags(Player *player, u32 flags, u32 mask)
 		return false;
 
 	SendHUDSetFlags(player->peer_id, flags, mask);
-	player->hud_flags = flags;
+	player->hud_flags &= ~mask;
+	player->hud_flags |= flags;
 
 	PlayerSAO* playersao = player->getPlayerSAO();
 

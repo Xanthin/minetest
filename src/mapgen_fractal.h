@@ -23,10 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "mapgen.h"
 
-#define MGFRACTAL_LARGE_CAVE_DEPTH -32
-
-/////////////////// Mapgen Fractal flags
-#define MGFRACTAL_JULIA 0x01
+#define MGFRACTAL_LARGE_CAVE_DEPTH -33
 
 class BiomeManager;
 
@@ -36,15 +33,12 @@ extern FlagDesc flagdesc_mapgen_fractal[];
 struct MapgenFractalParams : public MapgenSpecificParams {
 	u32 spflags;
 
-	u16 m_iterations;
-	v3f m_scale;
-	v3f m_offset;
-	float m_slice_w;
+	u16 formula;
+	u16 iterations;
+	v3f scale;
+	v3f offset;
+	float slice_w;
 
-	u16 j_iterations;
-	v3f j_scale;
-	v3f j_offset;
-	float j_slice_w;
 	float julia_x;
 	float julia_y;
 	float julia_z;
@@ -76,15 +70,12 @@ public:
 	v3s16 full_node_min;
 	v3s16 full_node_max;
 
-	u16 m_iterations;
-	v3f m_scale;
-	v3f m_offset;
-	float m_slice_w;
+	u16 formula;
+	u16 iterations;
+	v3f scale;
+	v3f offset;
+	float slice_w;
 
-	u16 j_iterations;
-	v3f j_scale;
-	v3f j_offset;
-	float j_slice_w;
 	float julia_x;
 	float julia_y;
 	float julia_z;

@@ -99,17 +99,17 @@ u32 PcgRandom::range(u32 bound)
 	Using rand() % 3, the number 0 would be twice as likely to appear.
 	With a very large RNG range, the effect becomes less prevalent but
 	still present.  This can be solved by modifying the range of the RNG
-	to become a multiple of bound by dropping values above the a threshhold.
-	In our example, threshhold == 4 - 3 = 1 % 3 == 1, so reject 0, thus
+	to become a multiple of bound by dropping values above the a threshold.
+	In our example, threshold == 4 - 3 = 1 % 3 == 1, so reject 0, thus
 	making the range 3 with no bias.
 
 	This loop looks dangerous, but will always terminate due to the
 	RNG's property of uniformity.
 	*/
-	u32 threshhold = -bound % bound;
+	u32 threshold = -bound % bound;
 	u32 r;
 
-	while ((r = next()) < threshhold)
+	while ((r = next()) < threshold)
 		;
 
 	return r % bound;
@@ -158,21 +158,21 @@ s32 PcgRandom::randNormalDist(s32 min, s32 max, int num_trials)
 
 float noise2d(int x, int y, int seed)
 {
-	int n = (NOISE_MAGIC_X * x + NOISE_MAGIC_Y * y
+	unsigned int n = (NOISE_MAGIC_X * x + NOISE_MAGIC_Y * y
 			+ NOISE_MAGIC_SEED * seed) & 0x7fffffff;
 	n = (n >> 13) ^ n;
 	n = (n * (n * n * 60493 + 19990303) + 1376312589) & 0x7fffffff;
-	return 1.f - (float)n / 0x40000000;
+	return 1.f - (float)(int)n / 0x40000000;
 }
 
 
 float noise3d(int x, int y, int z, int seed)
 {
-	int n = (NOISE_MAGIC_X * x + NOISE_MAGIC_Y * y + NOISE_MAGIC_Z * z
+	unsigned int n = (NOISE_MAGIC_X * x + NOISE_MAGIC_Y * y + NOISE_MAGIC_Z * z
 			+ NOISE_MAGIC_SEED * seed) & 0x7fffffff;
 	n = (n >> 13) ^ n;
 	n = (n * (n * n * 60493 + 19990303) + 1376312589) & 0x7fffffff;
-	return 1.f - (float)n / 0x40000000;
+	return 1.f - (float)(int)n / 0x40000000;
 }
 
 

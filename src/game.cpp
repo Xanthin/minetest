@@ -489,7 +489,7 @@ private:
 			color(color)
 		{}
 	};
-	std::vector<Piece> m_log;
+	std::deque<Piece> m_log;
 public:
 	u32 m_log_max_size;
 
@@ -512,7 +512,7 @@ public:
 	{
 		std::map<std::string, Meta> m_meta;
 
-		for (std::vector<Piece>::const_iterator k = m_log.begin();
+		for (std::deque<Piece>::const_iterator k = m_log.begin();
 				k != m_log.end(); ++k) {
 			const Piece &piece = *k;
 
@@ -600,7 +600,7 @@ public:
 			float lastscaledvalue = 0.0;
 			bool lastscaledvalue_exists = false;
 
-			for (std::vector<Piece>::const_iterator j = m_log.begin();
+			for (std::deque<Piece>::const_iterator j = m_log.begin();
 					j != m_log.end(); ++j) {
 				const Piece &piece = *j;
 				float value = 0;
@@ -1496,6 +1496,7 @@ protected:
 	void toggleFast(float *statustext_time);
 	void toggleNoClip(float *statustext_time);
 	void toggleCinematic(float *statustext_time);
+	void toggleAutorun(float *statustext_time);
 
 	void toggleChat(float *statustext_time, bool *flag);
 	void toggleHud(float *statustext_time, bool *flag);
@@ -1524,6 +1525,7 @@ protected:
 	void processPlayerInteraction(std::vector<aabb3f> &highlight_boxes,
 			GameRunData *runData, f32 dtime, bool show_hud,
 			bool show_debug);
+	void handlePointingAtNothing(GameRunData *runData, const ItemStack &playerItem);
 	void handlePointingAtNode(GameRunData *runData,
 			const PointedThing &pointed, const ItemDefinition &playeritem_def,
 			const ToolCapabilities &playeritem_toolcap, f32 dtime);
@@ -2618,10 +2620,8 @@ void Game::processKeyboardInput(VolatileRunFlags *flags,
 
 	if (input->wasKeyDown(keycache.key[KeyCache::KEYMAP_ID_DROP])) {
 		dropSelectedItem();
-	// Add WoW-style autorun by toggling continuous forward.
 	} else if (input->wasKeyDown(keycache.key[KeyCache::KEYMAP_ID_AUTORUN])) {
-		bool autorun_setting = g_settings->getBool("continuous_forward");
-		g_settings->setBool("continuous_forward", !autorun_setting);
+		toggleAutorun(statustext_time);
 	} else if (input->wasKeyDown(keycache.key[KeyCache::KEYMAP_ID_INVENTORY])) {
 		openInventory();
 	} else if (input->wasKeyDown(EscapeKey) || input->wasKeyDown(CancelKey)) {
@@ -2851,6 +2851,16 @@ void Game::toggleCinematic(float *statustext_time)
 	statustext = msg[cinematic];
 }
 
+// Add WoW-style autorun by toggling continuous forward.
+void Game::toggleAutorun(float *statustext_time)
+{
+	static const wchar_t *msg[] = { L"autorun disabled", L"autorun enabled" };
+	bool autorun_enabled = !g_settings->getBool("continuous_forward");
+	g_settings->set("continuous_forward", bool_to_cstr(autorun_enabled));
+
+	*statustext_time = 0;
+	statustext = msg[autorun_enabled ? 1 : 0];
+}
 
 void Game::toggleChat(float *statustext_time, bool *flag)
 {
@@ -3594,6 +3604,8 @@ void Game::processPlayerInteraction(std::vector<aabb3f> &highlight_boxes,
 	} else if (input->getLeftState()) {
 		// When button is held down in air, show continuous animation
 		runData->left_punch = true;
+	} else if (input->getRightClicked()) {
+		handlePointingAtNothing(runData, playeritem);
 	}
 
 	runData->pointed_old = pointed;
@@ -3606,6 +3618,15 @@ void Game::processPlayerInteraction(std::vector<aabb3f> &highlight_boxes,
 
 	input->resetLeftReleased();
 	input->resetRightReleased();
+}
+
+
+void Game::handlePointingAtNothing(GameRunData *runData, const ItemStack &playerItem)
+{
+	infostream << "Right Clicked in Air" << std::endl;
+	PointedThing fauxPointed;
+	fauxPointed.type = POINTEDTHING_NOTHING;
+	client->interact(5, fauxPointed);
 }
 
 
@@ -3682,8 +3703,12 @@ void Game::handlePointingAtNode(GameRunData *runData,
 						SimpleSoundSpec();
 
 				if (playeritem_def.node_placement_prediction == "" ||
-						nodedef_manager->get(map.getNodeNoEx(nodepos)).rightclickable)
+						nodedef_manager->get(map.getNodeNoEx(nodepos)).rightclickable) {
 					client->interact(3, pointed); // Report to server
+				} else {
+					soundmaker->m_player_rightpunch_sound =
+						playeritem_def.sound_place_failed;
+				}
 			}
 		}
 	}

@@ -117,9 +117,9 @@ bool Thread::start()
 
 	try {
 		m_thread_obj    = new std::thread(threadProc, this);
-		m_thread_id     = m_thread->get_id();
-		m_thread_handle = m_thread->native_handle();
-	} except (const std::system_error &e) {
+		m_thread_id     = m_thread_obj->get_id();
+		m_thread_handle = m_thread_obj->native_handle();
+	} catch (const std::system_error &e) {
 		return false;
 	}
 
@@ -264,7 +264,8 @@ DWORD WINAPI Thread::threadProc(LPVOID param)
 	thr->m_running = false;
 	g_logger.deregisterThread();
 
-	return NULL;
+	// 0 is returned here to avoid an unnecessary ifdef clause
+	return 0;
 }
 
 

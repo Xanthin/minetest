@@ -347,8 +347,12 @@ function core.item_place(itemstack, placer, pointed_thing, param2)
 	return itemstack
 end
 
+function core.item_secondary_use(itemstack, placer)
+	return itemstack
+end
+
 function core.item_drop(itemstack, dropper, pos)
-	if dropper.is_player then
+	if dropper and dropper:is_player() then
 		local v = dropper:get_look_dir()
 		local p = {x=pos.x, y=pos.y+1.2, z=pos.z}
 		local cs = itemstack:get_count()
@@ -362,6 +366,7 @@ function core.item_drop(itemstack, dropper, pos)
 			v.y = v.y*2 + 2
 			v.z = v.z*2
 			obj:setvelocity(v)
+			obj:get_luaentity().dropped_by = dropper:get_player_name()
 			return itemstack
 		end
 
@@ -604,6 +609,7 @@ core.craftitemdef_default = {
 	-- Interaction callbacks
 	on_place = redef_wrapper(core, 'item_place'), -- core.item_place
 	on_drop = redef_wrapper(core, 'item_drop'), -- core.item_drop
+	on_secondary_use = redef_wrapper(core, 'item_secondary_use'),
 	on_use = nil,
 }
 
@@ -621,6 +627,7 @@ core.tooldef_default = {
 
 	-- Interaction callbacks
 	on_place = redef_wrapper(core, 'item_place'), -- core.item_place
+	on_secondary_use = redef_wrapper(core, 'item_secondary_use'),
 	on_drop = redef_wrapper(core, 'item_drop'), -- core.item_drop
 	on_use = nil,
 }
@@ -639,6 +646,7 @@ core.noneitemdef_default = {  -- This is used for the hand and unknown items
 
 	-- Interaction callbacks
 	on_place = redef_wrapper(core, 'item_place'),
+	on_secondary_use = redef_wrapper(core, 'item_secondary_use'),
 	on_drop = nil,
 	on_use = nil,
 }

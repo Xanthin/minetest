@@ -155,10 +155,39 @@ if(ENABLE_FREETYPE)
 	endif()
 endif(ENABLE_FREETYPE)
 
-
-find_package(Lua REQUIRED)
+# LuaJIT
+option(ENABLE_LUAJIT "Enable LuaJIT support" TRUE)
+set(USE_LUAJIT FALSE)
+if(ENABLE_LUAJIT)
+	find_package(LuaJIT)
+	if(LUAJIT_FOUND)
+		set(USE_LUAJIT TRUE)
+	endif(LUAJIT_FOUND)
+else()
+	message (STATUS "LuaJIT detection disabled! (ENABLE_LUAJIT=0)")
+endif()
+if(NOT USE_LUAJIT)
+	message(STATUS "LuaJIT not found, using bundled Lua.")
+	set(LUA_LIBRARY "lua")
+	set(LUA_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lua/src")
+	add_subdirectory(lua)
+endif()
 
 find_package(GMP REQUIRED)
+
+option(ENABLE_CURSES "Enable ncurses console" TRUE)
+set(USE_CURSES FALSE)
+
+if(ENABLE_CURSES)
+	find_package(Ncursesw)
+	if(CURSES_FOUND)
+		set(USE_CURSES TRUE)
+		message(STATUS "ncurses console enabled.")
+		include_directories(${CURSES_INCLUDE_DIRS})
+	else()
+		message(STATUS "ncurses not found!")
+	endif()
+endif(ENABLE_CURSES)
 
 option(ENABLE_LEVELDB "Enable LevelDB backend" TRUE)
 set(USE_LEVELDB FALSE)
@@ -322,6 +351,7 @@ set(common_SRCS
 	areastore.cpp
 	ban.cpp
 	cavegen.cpp
+	chat.cpp
 	clientiface.cpp
 	collision.cpp
 	content_abm.cpp
@@ -352,6 +382,7 @@ set(common_SRCS
 	map.cpp
 	mapblock.cpp
 	mapgen.cpp
+	mapgen_flat.cpp
 	mapgen_fractal.cpp
 	mapgen_singlenode.cpp
 	mapgen_v5.cpp
@@ -388,6 +419,7 @@ set(common_SRCS
 	sound.cpp
 	staticobject.cpp
 	subgame.cpp
+	terminal_chat_console.cpp
 	tool.cpp
 	treegen.cpp
 	version.cpp
@@ -432,7 +464,6 @@ set(client_SRCS
 	${sound_SRCS}
 	${client_network_SRCS}
 	camera.cpp
-	chat.cpp
 	client.cpp
 	clientmap.cpp
 	clientmedia.cpp
@@ -559,6 +590,9 @@ if(BUILD_CLIENT)
 			${CGUITTFONT_LIBRARY}
 		)
 	endif()
+	if (USE_CURSES)
+		target_link_libraries(${PROJECT_NAME} ${CURSES_LIBRARIES})
+	endif()
 	if (USE_LEVELDB)
 		target_link_libraries(${PROJECT_NAME} ${LEVELDB_LIBRARY})
 	endif()
@@ -586,6 +620,9 @@ if(BUILD_SERVER)
 	)
 	set_target_properties(${PROJECT_NAME}server PROPERTIES
 			COMPILE_DEFINITIONS "SERVER")
+	if (USE_CURSES)
+		target_link_libraries(${PROJECT_NAME}server ${CURSES_LIBRARIES})
+	endif()
 	if (USE_LEVELDB)
 		target_link_libraries(${PROJECT_NAME}server ${LEVELDB_LIBRARY})
 	endif()
