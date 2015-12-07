@@ -152,6 +152,7 @@ public:
 	content_t c_giant_mushroom_cap;
 	content_t c_giant_mushroom_stem;
 	content_t c_sand_with_rocks;
+	content_t c_glowing_sand;
 	content_t c_arrow_arum;
 	content_t c_waterlily;
 

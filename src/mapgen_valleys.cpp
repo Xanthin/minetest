@@ -145,7 +145,8 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 	c_giant_mushroom_stem  = ndef->getId("valleys_c:giant_mushroom_stem");
 	c_sand_with_rocks      = ndef->getId("valleys_c:sand_with_rocks");
 	c_arrow_arum           = ndef->getId("valleys_c:arrow_arum_water");
-	c_waterlily           = ndef->getId("flowers:waterlily");
+	c_waterlily            = ndef->getId("flowers:waterlily");
+	c_glowing_sand         = ndef->getId("valleys_c:glowing_sand");
 
 	if (c_ice == CONTENT_IGNORE)
 		c_ice = CONTENT_AIR;
@@ -179,6 +180,8 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 		c_giant_mushroom_stem = CONTENT_AIR;
 	if (c_sand_with_rocks == CONTENT_IGNORE)
 		c_sand_with_rocks = c_sand;
+	if (c_glowing_sand == CONTENT_IGNORE)
+		c_glowing_sand = c_sand;
 	if (c_arrow_arum == CONTENT_IGNORE)
 		c_arrow_arum = c_sand;
 	if (c_waterlily == CONTENT_IGNORE)
@@ -707,6 +710,7 @@ int MapgenValleys::generateTerrain()
 	MapNode n_river_water(c_river_water_source);
 	MapNode n_sand(c_sand);
 	MapNode n_sand_with_rocks(c_sand_with_rocks);
+	MapNode n_glowing_sand(c_glowing_sand);
 
 	PseudoRandom ps(blockseed + 21343);
 
@@ -734,8 +738,10 @@ int MapgenValleys::generateTerrain()
 			if (vm->m_data[i].getContent() == CONTENT_IGNORE) {
 				if (river_y > surface_y && y == surface_y + 1) {
 					// river bottom
-					u16 r = ps.range(1,4);
+					u16 r = ps.range(1,28);
 					if (r == 1)
+						vm->m_data[i] = n_glowing_sand;
+					else if (r < 8)
 						vm->m_data[i] = n_sand_with_rocks;
 					else
 						vm->m_data[i] = n_sand;
