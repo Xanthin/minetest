@@ -55,6 +55,7 @@ FlagDesc flagdesc_mapgen_valleys[] = {
 	//{"v7caves", MG_VALLEYS_V7_CAVES},
 	{"lava", MG_VALLEYS_LAVA},
 	{"groundwater", MG_VALLEYS_GROUND_WATER},
+	{"profile", MG_VALLEYS_PROFILE},
 	{NULL,        0}
 };
 
@@ -256,10 +257,10 @@ void MapgenValleysParams::readParams(const Settings *settings)
 	//settings->getNoiseParams("mg_valleys_np_v7_caves_2",    np_v7_caves_2);
 	settings->getNoiseParams("mg_valleys_np_simple_caves_1",    np_simple_caves_1);
 	settings->getNoiseParams("mg_valleys_np_simple_caves_2",    np_simple_caves_2);
-	settings->getNoiseParams("mg_valleys_np_biome_heat", np_biome_heat);
-	settings->getNoiseParams("mg_valleys_np_biome_heat_blend", np_biome_heat_blend);
-	settings->getNoiseParams("mg_valleys_np_biome_humidity", np_biome_humidity);
-	settings->getNoiseParams("mg_valleys_np_biome_humidity_blend",    np_biome_humidity_blend);
+	settings->getNoiseParams("mg_biome_np_heat ", np_biome_heat);
+	settings->getNoiseParams("mg_biome_np_heat_blend ", np_biome_heat_blend);
+	settings->getNoiseParams("mg_biome_np_humidity ", np_biome_humidity);
+	settings->getNoiseParams("mg_biome_np_humidity_blend ", np_biome_humidity_blend);
 	
 	if (!settings->getS16NoEx("mg_valleys_temperature", temperature))
 		temperature = 50;  // in Fahrenheit, unfortunately
@@ -269,7 +270,7 @@ void MapgenValleysParams::readParams(const Settings *settings)
 		river_size = 5;  // How wide to make rivers.
 	if (!settings->getS16NoEx("mg_valleys_river_depth", river_depth))
 		river_depth = 5;  // How deep to carve river channels.
-	if (!settings->getS16NoEx("mg_valleys_water_level", water_level))
+	if (!settings->getS16NoEx("water_level", water_level))
 		water_level = 1;  // Sea-level.
 	if (!settings->getS16NoEx("mg_valleys_altitude_chill", altitude_chill))
 		altitude_chill = 90;  // The altitude at which temperature drops by 20C.
@@ -298,16 +299,16 @@ void MapgenValleysParams::writeParams(Settings *settings) const
 	//settings->setNoiseParams("mg_valleys_np_v7_caves_2",    np_v7_caves_2);
 	settings->setNoiseParams("mg_valleys_np_simple_caves_1",    np_simple_caves_1);
 	settings->setNoiseParams("mg_valleys_np_simple_caves_2",    np_simple_caves_2);
-	settings->setNoiseParams("mg_valleys_np_biome_heat", np_biome_heat);
-	settings->setNoiseParams("mg_valleys_np_biome_heat_blend", np_biome_heat_blend);
-	settings->setNoiseParams("mg_valleys_np_biome_humidity", np_biome_humidity);
-	settings->setNoiseParams("mg_valleys_np_biome_humidity_blend",    np_biome_humidity_blend);
+	settings->setNoiseParams("mg_biome_np_heat", np_biome_heat);
+	settings->setNoiseParams("mg_biome_np_heat_blend", np_biome_heat_blend);
+	settings->setNoiseParams("mg_biome_np_humidity", np_biome_humidity);
+	settings->setNoiseParams("mg_biome_np_humidity_blend",    np_biome_humidity_blend);
 	
 	settings->setS16("mg_valleys_temperature", temperature);
 	settings->setS16("mg_valleys_humidity", humidity);
 	settings->setS16("mg_valleys_river_size", river_size);
 	settings->setS16("mg_valleys_river_depth", river_depth);
-	settings->setS16("mg_valleys_water_level", water_level);
+	settings->setS16("water_level", water_level);
 	settings->setS16("mg_valleys_altitude_chill", altitude_chill);
 	settings->setS16("mg_valleys_lava_max_height", lava_max_height);
 
