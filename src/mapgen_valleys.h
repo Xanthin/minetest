@@ -32,6 +32,7 @@ See http://www.gnu.org/licenses/gpl-3.0.en.html
 #define MG_VALLEYS_LAVA 0x02
 #define MG_VALLEYS_GROUND_WATER 0x04
 #define MG_VALLEYS_PROFILE 0x08
+#define MG_VALLEYS_SUPPORT_LUA 0x10
 
 class BiomeManager;
 
@@ -52,6 +53,7 @@ struct MapgenValleysParams : public MapgenSpecificParams {
 	s16 humidity;
 	s16 temperature;
 	s16 lava_max_height;
+	s16 cave_water_height;
 
 	NoiseParams np_filler_depth;
 	NoiseParams np_biome_heat;
@@ -126,6 +128,7 @@ public:
 	float humidity_adjust;
 	float temperature_adjust;
 	float lava_max_height;
+	float cave_water_height;
 
 	content_t c_stone;
 	content_t c_water_source;
