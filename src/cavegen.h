@@ -60,7 +60,7 @@ public:
 
 	PseudoRandom *ps;
 
-	content_t c_water_source;
+	content_t c_river_water_source;
 	content_t c_lava_source;
 	content_t c_ice;
 
@@ -106,7 +106,7 @@ public:
 	PseudoRandom *ps;
 	PseudoRandom *ps2;
 
-	content_t c_water_source;
+	content_t c_river_water_source;
 	content_t c_lava_source;
 
 	int water_level;
@@ -150,7 +150,7 @@ public:
 
 	PseudoRandom *ps;
 
-	content_t c_water_source;
+	content_t c_river_water_source;
 	content_t c_lava_source;
 	content_t c_ice;
 

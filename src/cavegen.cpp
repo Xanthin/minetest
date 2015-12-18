@@ -38,7 +38,7 @@ CaveV5::CaveV5(Mapgen *mg, PseudoRandom *ps)
 	this->ndef           = mg->ndef;
 	this->water_level    = mg->water_level;
 	this->ps             = ps;
-	c_water_source       = ndef->getId("mapgen_water_source");
+	c_river_water_source = ndef->getId("mapgen_river_water_source");
 	c_lava_source        = ndef->getId("mapgen_lava_source");
 	c_ice                = ndef->getId("mapgen_ice");
 	this->np_caveliquids = &nparams_caveliquids;
@@ -207,7 +207,7 @@ void CaveV5::makeTunnel(bool dirswitch)
 void CaveV5::carveRoute(v3f vec, float f, bool randomize_xz) 
 {
 	MapNode airnode(CONTENT_AIR);
-	MapNode waternode(c_water_source);
+	MapNode waternode(c_river_water_source);
 	MapNode lavanode(c_lava_source);
 
 	v3s16 startp(orp.X, orp.Y, orp.Z);
@@ -285,7 +285,7 @@ CaveV6::CaveV6(MapgenV6 *mg, PseudoRandom *ps, PseudoRandom *ps2, bool is_large_
 	this->large_cave     = is_large_cave;
 	this->ps             = ps;
 	this->ps2            = ps2;
-	this->c_water_source = mg->c_water_source;
+	this->c_river_water_source = mg->c_river_water_source;
 	this->c_lava_source  = mg->c_lava_source;
 
 	min_tunnel_diameter = 2;
@@ -495,7 +495,7 @@ void CaveV6::makeTunnel(bool dirswitch)
 void CaveV6::carveRoute(v3f vec, float f, bool randomize_xz, bool tunnel_above_ground)
 {
 	MapNode airnode(CONTENT_AIR);
-	MapNode waternode(c_water_source);
+	MapNode waternode(c_river_water_source);
 	MapNode lavanode(c_lava_source);
 
 	v3s16 startp(orp.X, orp.Y, orp.Z);
@@ -576,7 +576,7 @@ CaveV7::CaveV7(MapgenV7 *mg, PseudoRandom *ps)
 	this->ndef           = mg->ndef;
 	this->water_level    = mg->water_level;
 	this->ps             = ps;
-	this->c_water_source = mg->c_water_source;
+	this->c_river_water_source = mg->c_river_water_source;
 	this->c_lava_source  = mg->c_lava_source;
 	this->c_ice          = mg->c_ice;
 	this->np_caveliquids = &nparams_caveliquids;
@@ -745,7 +745,7 @@ void CaveV7::makeTunnel(bool dirswitch)
 void CaveV7::carveRoute(v3f vec, float f, bool randomize_xz)
 {
 	MapNode airnode(CONTENT_AIR);
-	MapNode waternode(c_water_source);
+	MapNode waternode(c_river_water_source);
 	MapNode lavanode(c_lava_source);
 
 	v3s16 startp(orp.X, orp.Y, orp.Z);
