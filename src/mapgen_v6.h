@@ -111,6 +111,7 @@ public:
 	content_t c_dirt_with_grass;
 	content_t c_sand;
 	content_t c_water_source;
+	content_t c_river_water_source;
 	content_t c_lava_source;
 	content_t c_gravel;
 	content_t c_desert_stone;

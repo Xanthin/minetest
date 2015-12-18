@@ -95,6 +95,7 @@ MapgenV7::MapgenV7(int mapgenid, MapgenParams *params, EmergeManager *emerge)
 
 	c_stone                = ndef->getId("mapgen_stone");
 	c_water_source         = ndef->getId("mapgen_water_source");
+	c_river_water_source   = ndef->getId("mapgen_river_water_source");
 	c_lava_source          = ndef->getId("mapgen_lava_source");
 	c_desert_stone         = ndef->getId("mapgen_desert_stone");
 	c_ice                  = ndef->getId("mapgen_ice");

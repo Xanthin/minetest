@@ -75,6 +75,7 @@ public:
 
 	content_t c_stone;
 	content_t c_water_source;
+	content_t c_river_water_source;
 	content_t c_lava_source;
 	content_t c_desert_stone;
 	content_t c_ice;

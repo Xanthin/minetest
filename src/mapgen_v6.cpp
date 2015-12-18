@@ -88,6 +88,7 @@ MapgenV6::MapgenV6(int mapgenid, MapgenParams *params, EmergeManager *emerge)
 	c_dirt_with_grass = ndef->getId("mapgen_dirt_with_grass");
 	c_sand            = ndef->getId("mapgen_sand");
 	c_water_source    = ndef->getId("mapgen_water_source");
+	c_river_water_source   = ndef->getId("mapgen_river_water_source");
 	c_lava_source     = ndef->getId("mapgen_lava_source");
 	c_gravel          = ndef->getId("mapgen_gravel");
 	c_desert_stone    = ndef->getId("mapgen_desert_stone");
