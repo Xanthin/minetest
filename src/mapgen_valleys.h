@@ -28,11 +28,11 @@ See http://www.gnu.org/licenses/gpl-3.0.en.html
 #include "mapgen.h"
 
 /////////////////// Mapgen Valleys flags
-//#define MG_VALLEYS_V7_CAVES 0x01
-#define MG_VALLEYS_LAVA 0x02
-#define MG_VALLEYS_GROUND_WATER 0x04
-#define MG_VALLEYS_PROFILE 0x08
-#define MG_VALLEYS_SUPPORT_LUA 0x10
+#define MG_VALLEYS_SUPPORT_LUA 0x01
+#define MG_VALLEYS_CLIFFS 0x02
+#define MG_VALLEYS_RUGGED 0x04
+//#define MG_VALLEYS_V7_CAVES 0x02
+//#define MG_VALLEYS_PROFILE 0x04
 
 class BiomeManager;
 

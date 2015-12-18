@@ -52,13 +52,13 @@ static Profiler mapgen_prof;
 Profiler *mapgen_profiler = &mapgen_prof;
 
 FlagDesc flagdesc_mapgen_valleys[] = {
-	//{"v7caves", MG_VALLEYS_V7_CAVES},
 	{"lua", MG_VALLEYS_SUPPORT_LUA},
-	{"lava", MG_VALLEYS_LAVA},
-	{"groundwater", MG_VALLEYS_GROUND_WATER},
-	{"profile", MG_VALLEYS_PROFILE},
+	{"cliffs", MG_VALLEYS_CLIFFS},
+	{"rugged", MG_VALLEYS_RUGGED},
 	{NULL,        0}
 };
+	//{"profile", MG_VALLEYS_PROFILE},
+	//{"v7caves", MG_VALLEYS_V7_CAVES},
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -87,7 +87,7 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 
 	river_size = (float)(sp->river_size) / 100;
 	river_depth = sp->river_depth + 1;
-	water_level = sp->water_level;
+	water_level = params->water_level;
 	altitude_chill = sp->altitude_chill;
 	lava_max_height = sp->lava_max_height;
 
@@ -104,10 +104,10 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 	noise_corr = new Noise(&sp->np_corr, seed, csize.X, csize.Z);
 
 	//// Biome noise
-	noise_heat           = new Noise(&sp->np_biome_heat,           seed, csize.X, csize.Z);
-	noise_humidity       = new Noise(&sp->np_biome_humidity,       seed, csize.X, csize.Z);
-	noise_heat_blend     = new Noise(&sp->np_biome_heat_blend,     seed, csize.X, csize.Z);
-	noise_humidity_blend = new Noise(&sp->np_biome_humidity_blend, seed, csize.X, csize.Z);
+	noise_heat           = new Noise(&params->np_biome_heat,           seed, csize.X, csize.Z);
+	noise_humidity       = new Noise(&params->np_biome_humidity,       seed, csize.X, csize.Z);
+	noise_heat_blend     = new Noise(&params->np_biome_heat_blend,     seed, csize.X, csize.Z);
+	noise_humidity_blend = new Noise(&params->np_biome_humidity_blend, seed, csize.X, csize.Z);
 
 	// VMG noises
 	noise_terrain_height = new Noise(&sp->np_terrain_height, seed, csize.X, csize.Z);
@@ -224,9 +224,7 @@ MapgenValleys::~MapgenValleys()
 
 MapgenValleysParams::MapgenValleysParams()
 {
-	spflags = MG_VALLEYS_SUPPORT_LUA;
-
-	//spflags = MG_VALLEYS_V7_CAVES;
+	spflags = MG_VALLEYS_SUPPORT_LUA | MG_VALLEYS_CLIFFS | MG_VALLEYS_RUGGED;
 
 	np_filler_depth = NoiseParams(0, 1.2, v3f(150, 150, 150), 261, 3, 0.7, 2.0);
 	//np_v7_caves_1 = NoiseParams(0, 12, v3f(100, 100, 100), 52534, 4, 0.5, 2.0);
@@ -235,11 +233,6 @@ MapgenValleysParams::MapgenValleysParams()
 	np_simple_caves_2 = NoiseParams(0, 1, v3f(64, 64, 64), 3944, 3, 0.5, 2.0);
 	np_cliffs = NoiseParams(0, 1, v3f(750, 750, 750), 8445, 5, 1.0, 2.0);
 	np_corr = NoiseParams(0, 1, v3f(32, 32, 32), -3536, 4, 1.0, 2.0);
-
-	np_biome_heat = NoiseParams(60, 50, v3f(750.0, 750.0, 750.0), 5349, 3, 0.5, 2.0);
-	np_biome_heat_blend = NoiseParams(0, 1.5, v3f(8.0, 8.0, 8.0), 13, 2, 1.0, 2.0);
-	np_biome_humidity = NoiseParams(50, 50, v3f(750.0, 750.0, 750.0), 842, 3, 0.5, 2.0);
-	np_biome_humidity_blend = NoiseParams(0, 1.5, v3f(8.0, 8.0, 8.0), 90003, 2, 1.0, 2.0);
 
 	// vmg noises
 	np_terrain_height = NoiseParams(-10, 50, v3f(1024, 1024, 1024), 5202, 6, 0.4, 2.0);
@@ -261,10 +254,6 @@ void MapgenValleysParams::readParams(const Settings *settings)
 	//settings->getNoiseParams("mg_valleys_np_v7_caves_2",    np_v7_caves_2);
 	settings->getNoiseParams("mg_valleys_np_simple_caves_1",    np_simple_caves_1);
 	settings->getNoiseParams("mg_valleys_np_simple_caves_2",    np_simple_caves_2);
-	settings->getNoiseParams("mg_biome_np_heat ", np_biome_heat);
-	settings->getNoiseParams("mg_biome_np_heat_blend ", np_biome_heat_blend);
-	settings->getNoiseParams("mg_biome_np_humidity ", np_biome_humidity);
-	settings->getNoiseParams("mg_biome_np_humidity_blend ", np_biome_humidity_blend);
 	
 	if (!settings->getS16NoEx("mg_valleys_temperature", temperature))
 		temperature = 50;  // in Fahrenheit, unfortunately
@@ -274,14 +263,12 @@ void MapgenValleysParams::readParams(const Settings *settings)
 		river_size = 5;  // How wide to make rivers.
 	if (!settings->getS16NoEx("mg_valleys_river_depth", river_depth))
 		river_depth = 5;  // How deep to carve river channels.
-	if (!settings->getS16NoEx("water_level", water_level))
-		water_level = 1;  // Sea-level.
 	if (!settings->getS16NoEx("mg_valleys_altitude_chill", altitude_chill))
 		altitude_chill = 90;  // The altitude at which temperature drops by 20C.
 	if (!settings->getS16NoEx("mg_valleys_lava_max_height", lava_max_height))
 		lava_max_height = 0;  // Lava will never be higher than this.
 	if (!settings->getS16NoEx("mg_valleys_cave_water_max_height", cave_water_height))
-		 cave_water_height = 30000;  // Water in caves will never be higher than this.
+		 cave_water_height = MAX_MAP_GENERATION_LIMIT;  // Water in caves will never be higher than this.
 
 	// vmg noises
 	settings->getNoiseParams("mg_valleys_np_terrain_height",    np_terrain_height);
@@ -305,16 +292,11 @@ void MapgenValleysParams::writeParams(Settings *settings) const
 	//settings->setNoiseParams("mg_valleys_np_v7_caves_2",    np_v7_caves_2);
 	settings->setNoiseParams("mg_valleys_np_simple_caves_1",    np_simple_caves_1);
 	settings->setNoiseParams("mg_valleys_np_simple_caves_2",    np_simple_caves_2);
-	settings->setNoiseParams("mg_biome_np_heat", np_biome_heat);
-	settings->setNoiseParams("mg_biome_np_heat_blend", np_biome_heat_blend);
-	settings->setNoiseParams("mg_biome_np_humidity", np_biome_humidity);
-	settings->setNoiseParams("mg_biome_np_humidity_blend",    np_biome_humidity_blend);
 	
 	settings->setS16("mg_valleys_temperature", temperature);
 	settings->setS16("mg_valleys_humidity", humidity);
 	settings->setS16("mg_valleys_river_size", river_size);
 	settings->setS16("mg_valleys_river_depth", river_depth);
-	settings->setS16("water_level", water_level);
 	settings->setS16("mg_valleys_altitude_chill", altitude_chill);
 	settings->setS16("mg_valleys_lava_max_height", lava_max_height);
 	settings->setS16("mg_valleys_cave_water_max_height", cave_water_height);
@@ -534,8 +516,10 @@ void MapgenValleys::calculateNoise()
 	noise_valley_profile->perlinMap2D(x, z);
 	noise_inter_valley_slope->perlinMap2D(x, z);
 	noise_inter_valley_fill->perlinMap2D(x, z);
-	noise_cliffs->perlinMap2D(x, z);
-	noise_corr->perlinMap2D(x, z);
+	if (spflags & MG_VALLEYS_CLIFFS)
+		noise_cliffs->perlinMap2D(x, z);
+	if (spflags & MG_VALLEYS_RUGGED)
+		noise_corr->perlinMap2D(x, z);
 	noise_plant_1->perlinMap2D(x, z);
 
 	if (flags & MG_CAVES) {
@@ -556,14 +540,20 @@ void MapgenValleys::calculateNoise()
 		noise_humidity->result[index] += noise_humidity_blend->result[index];
 	}
 
-	float mount, valley, rivers;
+	float mount, valley, rivers, cliffs, corr;
+	cliffs = corr = 0.0;
 	u32 index = 0;
 	for (s16 zi = node_min.Z; zi <= node_max.Z; zi++)
 	for (s16 xi = node_min.X; xi <= node_max.X; xi++, index++) {
+		if (spflags & MG_VALLEYS_CLIFFS)
+			cliffs = noise_cliffs->result[index];
+		if (spflags & MG_VALLEYS_RUGGED)
+			corr = noise_corr->result[index];
+
 		// The two parameters that we actually need to generate terrain
 		//  are terrain height and river noise.
 		rivers = noise_rivers->result[index];
-		mount = baseGroundFromNoise(xi, zi, noise_valley_depth->result[index], noise_terrain_height->result[index], &rivers, noise_valley_profile->result[index], noise_inter_valley_slope->result[index], &valley, noise_inter_valley_fill->result[index], noise_cliffs->result[index], noise_corr->result[index]);
+		mount = baseGroundFromNoise(xi, zi, noise_valley_depth->result[index], noise_terrain_height->result[index], &rivers, noise_valley_profile->result[index], noise_inter_valley_slope->result[index], &valley, noise_inter_valley_fill->result[index], cliffs, corr);
 		noise_terrain_height->result[index] = mount;
 		noise_rivers->result[index] = rivers;
 
@@ -630,15 +620,14 @@ float MapgenValleys::baseGroundFromNoise(s16 x, s16 z, float valley_depth, float
 	//  occasionally to create cliffs.
 	float delta = sin(inter_valley_fill) * slope;
 	if (delta != 0) {
-		if (cliffs < 0.2)
+		if ((spflags & MG_VALLEYS_CLIFFS) && cliffs < 0.2)
 			mount += delta;
 		else
 			mount += delta * 0.66;
 
 		// Use yet another noise to make the mountains look more rugged.
-		if (mount > water_level && fabs(inter_valley_slope * inter_valley_fill) < 0.3) {
+		if ((spflags & MG_VALLEYS_RUGGED) && mount > water_level && fabs(inter_valley_slope * inter_valley_fill) < 0.3)
 			mount += (delta / fabs(delta)) * pow(fabs(delta), 0.5) * fabs(sin(corr));
-		}
 	}
 
 	return mount;
@@ -647,14 +636,13 @@ float MapgenValleys::baseGroundFromNoise(s16 x, s16 z, float valley_depth, float
 
 float MapgenValleys::humidityByTerrain(float humidity, float mount, float valley)
 {
+	// Although the original valleys adjusts humidity by distance
+	// from seawater, this causes problems with the default biomes.
+	// Adjust only by freshwater proximity.
 	humidity += humidity_adjust;
 	if (mount > water_level) {
-		// humidity is usually higher near water.
-		float sea_water = pow(0.5, fmax((mount - water_level) / 12, 0));
 		float river_water = pow(0.5, fmax(valley / 12, 0));
-		sea_water /= 2;
-		float water = sea_water + (1 - sea_water) * river_water;
-		humidity = fmax(humidity, (65 * water));
+		humidity = fmax(humidity, (65 * river_water));
 	}
 
 	return humidity;
@@ -673,8 +661,14 @@ Biome *MapgenValleys::getBiomeAtPoint(v3s16 p)
 	float inter_valley_slope = NoisePerlin2D(&noise_inter_valley_slope->np, p.X, p.Z, seed);
 	float valley;
 	float inter_valley_fill = NoisePerlin2D(&noise_inter_valley_fill->np, p.X, p.Z, seed);
-	float cliffs = NoisePerlin2D(&noise_cliffs->np, p.X, p.Z, seed);
-	float corr = NoisePerlin2D(&noise_corr->np, p.X, p.Z, seed);
+
+	float cliffs = 0.0;
+	if (spflags & MG_VALLEYS_CLIFFS)
+		cliffs = NoisePerlin2D(&noise_cliffs->np, p.X, p.Z, seed);
+
+	float corr = 0.0;
+	if (spflags & MG_VALLEYS_RUGGED)
+		corr = NoisePerlin2D(&noise_corr->np, p.X, p.Z, seed);
 
 	float mount = baseGroundFromNoise(p.X, p.Z, valley_depth, terrain_height, &rivers, valley_profile, inter_valley_slope, &valley, inter_valley_fill, cliffs, corr);
 	s16 groundlevel = (s16) mount;
@@ -702,9 +696,15 @@ float MapgenValleys::baseTerrainLevelAtPoint(s16 x, s16 z)
 	float valley_profile = NoisePerlin2D(&noise_valley_profile->np, x, z, seed);
 	float inter_valley_slope = NoisePerlin2D(&noise_inter_valley_slope->np, x, z, seed);
 	float inter_valley_fill = NoisePerlin2D(&noise_inter_valley_fill->np, x, z, seed);
-	float cliffs = NoisePerlin2D(&noise_cliffs->np, x, z, seed);
-	float corr = NoisePerlin2D(&noise_corr->np, x, z, seed);
-	float valley;
+	float valley = 0.0;
+
+	float cliffs = 0.0;
+	if (spflags & MG_VALLEYS_CLIFFS)
+		cliffs = NoisePerlin2D(&noise_cliffs->np, x, z, seed);
+
+	float corr = 0.0;
+	if (spflags & MG_VALLEYS_RUGGED)
+		corr = NoisePerlin2D(&noise_corr->np, x, z, seed);
 
 	return MapgenValleys::baseGroundFromNoise(x, z, valley_depth, terrain_height, &rivers, valley_profile, inter_valley_slope, &valley, inter_valley_fill, cliffs, corr);
 }
@@ -802,7 +802,7 @@ void MapgenValleys::water_plants(float *heat_map, float *humidity_map)
 			// Check for river bottom.
 			if (c == c_sand && (ca == c_water_source || ca == c_river_water_source)) {
 				// Use an extra random to space them out more.
-				if (noise_plant_1->result[index] < 0.1 && ps.range(1,20) < 5) {
+				if (noise_plant_1->result[index] > -0.1 && ps.range(1,20) < 5) {
 					bool surround = true;
 					// Check for blocks that are surrounded by ground, to keep
 					//  the sides of the plant/sand blocks hidden.
@@ -822,7 +822,7 @@ void MapgenValleys::water_plants(float *heat_map, float *humidity_map)
 						vm->m_data[i] = n_arrow_arum;
 				}
 			} else if (c == c_river_water_source && ca == CONTENT_AIR) {
-				if (heat_map[index] > 65 && fabs(noise_plant_1->result[index]) < 0.2 && ps.range(1,20) < 4)
+				if (heat_map[index] > 65 && fabs(noise_plant_1->result[index]) > 0.4 && ps.range(1,20) < 4)
 					vm->m_data[j] = n_waterlily;
 			}
 
