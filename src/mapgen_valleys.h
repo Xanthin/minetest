@@ -28,11 +28,8 @@ See http://www.gnu.org/licenses/gpl-3.0.en.html
 #include "mapgen.h"
 
 /////////////////// Mapgen Valleys flags
-#define MG_VALLEYS_SUPPORT_LUA 0x01
 #define MG_VALLEYS_CLIFFS 0x02
 #define MG_VALLEYS_RUGGED 0x04
-//#define MG_VALLEYS_V7_CAVES 0x02
-//#define MG_VALLEYS_PROFILE 0x04
 
 class BiomeManager;
 
@@ -72,7 +69,6 @@ struct MapgenValleysParams : public MapgenSpecificParams {
 	NoiseParams np_inter_valley_fill;
 	NoiseParams np_simple_caves_1;
 	NoiseParams np_simple_caves_2;
-	NoiseParams np_plant_1;
 
 	MapgenValleysParams();
 	~MapgenValleysParams() {}
@@ -113,7 +109,6 @@ public:
 	Noise *noise_inter_valley_fill;
 	Noise *noise_simple_caves_1;
 	Noise *noise_simple_caves_2;
-	Noise *noise_plant_1;
 	Noise *noise_cliffs;
 	Noise *noise_corr;
 
@@ -142,18 +137,6 @@ public:
 	content_t c_stair_sandstonebrick;
 
 	content_t c_dirt;
-	content_t c_stalactite;
-	content_t c_stalagmite;
-	content_t c_fungal_stone;
-	content_t c_mushroom_fertile_red;
-	content_t c_mushroom_fertile_brown;
-	content_t c_huge_mushroom_cap;
-	content_t c_giant_mushroom_cap;
-	content_t c_giant_mushroom_stem;
-	content_t c_sand_with_rocks;
-	content_t c_glowing_sand;
-	content_t c_arrow_arum;
-	content_t c_waterlily;
 
 	MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *emerge);
 	~MapgenValleys();
@@ -174,7 +157,6 @@ public:
 	float humidityByTerrain(float humidity, float mount, float valley);
 
 	MgStoneType generateBiomes(float *heat_map, float *humidity_map);
-	void water_plants(float *heat_map, float *humidity_map);
 	void fixRivers(s16 sx, s16 sy, s16 *height_map);
 	void dustTopNodes();
 

@@ -51,12 +51,10 @@ static Profiler mapgen_prof;
 Profiler *mapgen_profiler = &mapgen_prof;
 
 FlagDesc flagdesc_mapgen_valleys[] = {
-	{"lua", MG_VALLEYS_SUPPORT_LUA},
 	{"cliffs", MG_VALLEYS_CLIFFS},
 	{"rugged", MG_VALLEYS_RUGGED},
 	{NULL,        0}
 };
-	//{"profile", MG_VALLEYS_PROFILE},
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -109,7 +107,6 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 	noise_valley_profile = new Noise(&sp->np_valley_profile, seed, csize.X, csize.Z);
 	noise_inter_valley_slope = new Noise(&sp->np_inter_valley_slope, seed, csize.X, csize.Z);
 	noise_inter_valley_fill = new Noise(&sp->np_inter_valley_fill, seed, csize.X, csize.Y, csize.Z);
-	noise_plant_1 = new Noise(&sp->np_plant_1, seed, csize.X, csize.Z);
 
 	//// Resolve nodes to be used
 	INodeDefManager *ndef = emerge->ndef;
@@ -131,21 +128,6 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 
 	c_dirt                 = ndef->getId("mapgen_dirt");
 
-	// Most of these are only relevant to the Valleys C lua support mod
-	//  (https://github.com/duane-r/valleys_c)
-	c_stalactite           = ndef->getId("valleys_c:stalactite");
-	c_stalagmite           = ndef->getId("valleys_c:stalagmite");
-	c_fungal_stone         = ndef->getId("valleys_c:glowing_fungal_stone");
-	c_mushroom_fertile_red = ndef->getId("flowers:mushroom_fertile_red");
-	c_mushroom_fertile_brown = ndef->getId("flowers:mushroom_fertile_brown");
-	c_huge_mushroom_cap    = ndef->getId("valleys_c:huge_mushroom_cap");
-	c_giant_mushroom_cap   = ndef->getId("valleys_c:giant_mushroom_cap");
-	c_giant_mushroom_stem  = ndef->getId("valleys_c:giant_mushroom_stem");
-	c_sand_with_rocks      = ndef->getId("valleys_c:sand_with_rocks");
-	c_arrow_arum           = ndef->getId("valleys_c:arrow_arum_water");
-	c_waterlily            = ndef->getId("flowers:waterlily");
-	c_glowing_sand         = ndef->getId("valleys_c:glowing_sand");
-
 	if (c_ice == CONTENT_IGNORE)
 		c_ice = CONTENT_AIR;
 	if (c_mossycobble == CONTENT_IGNORE)
@@ -160,30 +142,6 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 		c_river_water_source = c_water_source;
 	if (c_sand == CONTENT_IGNORE)
 		c_sand = c_stone;
-	if (c_stalactite == CONTENT_IGNORE)
-		c_stalactite = CONTENT_AIR;
-	if (c_stalagmite == CONTENT_IGNORE)
-		c_stalagmite = CONTENT_AIR;
-	if (c_fungal_stone == CONTENT_IGNORE)
-		c_fungal_stone = c_stone;
-	if (c_mushroom_fertile_red == CONTENT_IGNORE)
-		c_mushroom_fertile_red = CONTENT_AIR;
-	if (c_mushroom_fertile_brown == CONTENT_IGNORE)
-		c_mushroom_fertile_brown = CONTENT_AIR;
-	if (c_huge_mushroom_cap == CONTENT_IGNORE)
-		c_huge_mushroom_cap = CONTENT_AIR;
-	if (c_giant_mushroom_cap == CONTENT_IGNORE)
-		c_giant_mushroom_cap = CONTENT_AIR;
-	if (c_giant_mushroom_stem == CONTENT_IGNORE)
-		c_giant_mushroom_stem = CONTENT_AIR;
-	if (c_sand_with_rocks == CONTENT_IGNORE)
-		c_sand_with_rocks = c_sand;
-	if (c_glowing_sand == CONTENT_IGNORE)
-		c_glowing_sand = c_sand;
-	if (c_arrow_arum == CONTENT_IGNORE)
-		c_arrow_arum = c_sand;
-	if (c_waterlily == CONTENT_IGNORE)
-		c_waterlily = CONTENT_AIR;
 }
 
 
@@ -206,7 +164,6 @@ MapgenValleys::~MapgenValleys()
 	delete noise_corr;
 	delete noise_simple_caves_1;
 	delete noise_simple_caves_2;
-	delete noise_plant_1;
 
 	delete[] heightmap;
 	delete[] biomemap;
@@ -215,7 +172,7 @@ MapgenValleys::~MapgenValleys()
 
 MapgenValleysParams::MapgenValleysParams()
 {
-	spflags = MG_VALLEYS_SUPPORT_LUA | MG_VALLEYS_CLIFFS | MG_VALLEYS_RUGGED;
+	spflags = MG_VALLEYS_CLIFFS | MG_VALLEYS_RUGGED;
 
 	np_filler_depth = NoiseParams(0, 1.2, v3f(150, 150, 150), 261, 3, 0.7, 2.0);
 	np_simple_caves_1 = NoiseParams(0, 1, v3f(64, 64, 64), -8402, 3, 0.5, 2.0);
@@ -230,7 +187,6 @@ MapgenValleysParams::MapgenValleysParams()
 	np_valley_profile = NoiseParams(0.6, 0.5, v3f(512, 512, 512), 777, 1, 1.0, 2.0);
 	np_inter_valley_slope = NoiseParams(0.5, 0.5, v3f(128, 128, 128), 746, 1, 1.0, 2.0);
 	np_inter_valley_fill = NoiseParams(0, 1, v3f(512, 512, 512), 1993, 6, 0.8, 2.0);
-	np_plant_1 = NoiseParams(0, 1, v3f(200, 200, 200), 33, 3, 0.7, 2.0);
 }
 
 
@@ -266,7 +222,6 @@ void MapgenValleysParams::readParams(const Settings *settings)
 	settings->getNoiseParams("mg_valleys_np_valley_profile",    np_valley_profile);
 	settings->getNoiseParams("mg_valleys_np_inter_valley_slope",    np_inter_valley_slope);
 	settings->getNoiseParams("mg_valleys_np_inter_valley_fill",    np_inter_valley_fill);
-	settings->getNoiseParams("mg_valleys_np_plant_1",    np_plant_1);
 }
 
 
@@ -295,7 +250,6 @@ void MapgenValleysParams::writeParams(Settings *settings) const
 	settings->setNoiseParams("mg_valleys_np_valley_profile",    np_valley_profile);
 	settings->setNoiseParams("mg_valleys_np_inter_valley_slope",    np_inter_valley_slope);
 	settings->setNoiseParams("mg_valleys_np_inter_valley_fill",    np_inter_valley_fill);
-	settings->setNoiseParams("mg_valleys_np_plant_1",    np_plant_1);
 }
 
 
@@ -340,9 +294,6 @@ void MapgenValleys::makeChunk(BlockMakeData *data)
 
 	// Actually place the biome-specific nodes
 	MgStoneType stone_type = generateBiomes(heatmap, humidmap);
-
-	if (spflags & MG_VALLEYS_SUPPORT_LUA)
-		water_plants(heatmap, humidmap);
 
 	if (flags & MG_CAVES)
 		generateSimpleCaves(stone_surface_max_y);
@@ -450,13 +401,6 @@ void MapgenValleys::fixRivers(s16 sx, s16 sy, s16 *height_map)
 					}
 				}
 				if (!supported) {
-					if (river_y < node_max.Y) {
-						u32 i = vm->m_area.index(x, river_y+1, z);
-						content_t c = vm->m_data[i].getContent();
-						if (c == c_waterlily)
-							vm->m_data[i] = n_air;
-					}
-
 					for (s16 y = river_y; y >= node_min.Y; y--) {
 						u32 i = vm->m_area.index(x, y, z);
 						content_t c = vm->m_data[i].getContent();
@@ -500,7 +444,6 @@ void MapgenValleys::calculateNoise()
 		noise_cliffs->perlinMap2D(x, z);
 	if (spflags & MG_VALLEYS_RUGGED)
 		noise_corr->perlinMap2D(x, z);
-	noise_plant_1->perlinMap2D(x, z);
 
 	if (flags & MG_CAVES) {
 		noise_simple_caves_1->perlinMap3D(x, y, z);
@@ -692,8 +635,6 @@ int MapgenValleys::generateTerrain()
 	MapNode n_water(c_water_source);
 	MapNode n_river_water(c_river_water_source);
 	MapNode n_sand(c_sand);
-	MapNode n_sand_with_rocks(c_sand_with_rocks);
-	MapNode n_glowing_sand(c_glowing_sand);
 
 	PseudoRandom ps(blockseed + 21343);
 
@@ -721,17 +662,7 @@ int MapgenValleys::generateTerrain()
 			if (vm->m_data[i].getContent() == CONTENT_IGNORE) {
 				if (river_y > surface_y && y == surface_y + 1) {
 					// river bottom
-					if ((spflags & MG_VALLEYS_SUPPORT_LUA) == 0)
-						vm->m_data[i] = n_sand;
-					else {
-						u16 r = ps.range(1,28);
-						if (r == 1)
-							vm->m_data[i] = n_glowing_sand;
-						else if (r < 8)
-							vm->m_data[i] = n_sand_with_rocks;
-						else
-							vm->m_data[i] = n_sand;
-					}
+					vm->m_data[i] = n_sand;
 				} else if (y <= surface_y)
 					// ground
 					vm->m_data[i] = n_stone;
@@ -749,61 +680,6 @@ int MapgenValleys::generateTerrain()
 	}
 
 	return surface_max_y;
-}
-
-
-// Check riverbeds for places to put plant/sand blocks,
-//  used by the lua support code.
-void MapgenValleys::water_plants(float *heat_map, float *humidity_map)
-{
-	PseudoRandom ps(blockseed + 56439);
-	MapNode n_arrow_arum(c_arrow_arum);
-	// Water lilies for the rivers
-	MapNode n_waterlily(c_waterlily);
-
-	v3s16 em = vm->m_area.getExtent();
-	u32 index = 0;
-
-	for (s16 z = node_min.Z; z <= node_max.Z; z++)
-	for (s16 x = node_min.X; x <= node_max.X; x++, index++) {
-		u32 i = vm->m_area.index(x, node_min.Y, z);
-
-		for (s16 y = node_min.Y; y < node_max.Y; y++) {
-			content_t c = vm->m_data[i].getContent();
-			u32 j = i;
-			vm->m_area.add_y(em, j, 1);
-			content_t ca = vm->m_data[j].getContent();
-
-			// Check for river bottom.
-			if (c == c_sand && (ca == c_water_source || ca == c_river_water_source)) {
-				// Use an extra random to space them out more.
-				if (noise_plant_1->result[index] > -0.1 && ps.range(1,20) < 5) {
-					bool surround = true;
-					// Check for blocks that are surrounded by ground, to keep
-					//  the sides of the plant/sand blocks hidden.
-					for (s16 d = -1; d < 2; d+=2) {
-						u32 j = i;
-						u32 k = i;
-						vm->m_area.add_x(em, j, d);
-						vm->m_area.add_z(em, k, d);
-						content_t c1 = vm->m_data[j].getContent();
-						content_t c2 = vm->m_data[k].getContent();
-						if (c1 == c_water_source || c1 == c_river_water_source || c1 == CONTENT_AIR || c1 == CONTENT_IGNORE)
-							surround = false;
-						if (c2 == c_water_source || c2 == c_river_water_source || c2 == CONTENT_AIR || c2 == CONTENT_IGNORE)
-							surround = false;
-					}
-					if (surround && ca == c_river_water_source && heat_map[index] > 35)
-						vm->m_data[i] = n_arrow_arum;
-				}
-			} else if (c == c_river_water_source && ca == CONTENT_AIR) {
-				if (heat_map[index] > 65 && fabs(noise_plant_1->result[index]) > 0.4 && ps.range(1,20) < 4)
-					vm->m_data[j] = n_waterlily;
-			}
-
-			vm->m_area.add_y(em, i, 1);
-		}
-	}
 }
 
 
@@ -968,14 +844,6 @@ void MapgenValleys::generateSimpleCaves(s16 max_stone_y)
 	MapNode n_dirt(c_dirt);
 	MapNode n_water(c_water_source);
 	MapNode n_lava(c_lava_source);
-	MapNode n_stalactite(c_stalactite);
-	MapNode n_stalagmite(c_stalagmite);
-	MapNode n_fungal_stone(c_fungal_stone);
-	MapNode n_mushroom_red(c_mushroom_fertile_red);
-	MapNode n_mushroom_brown(c_mushroom_fertile_brown);
-	MapNode n_cap_huge(c_huge_mushroom_cap);
-	MapNode n_cap_giant(c_giant_mushroom_cap);
-	MapNode n_stem(c_giant_mushroom_stem);
 
 	v3s16 em = vm->m_area.getExtent();
 	u16 sr = 1000;
@@ -1000,35 +868,8 @@ void MapgenValleys::generateSimpleCaves(s16 max_stone_y)
 						underground = true;
 
 					if (n1 && n2 && c != CONTENT_AIR && c != c_water_source) {
-						if ((spflags & MG_VALLEYS_SUPPORT_LUA) == 0) {
 							vm->m_data[index_data] = n_air;
 							air_count++;
-						} else {
-							sr = 1000;
-							if (ca == c_stone) {
-								sr = ps.range(0,99);
-								if (humidmap[index_2d] > 0)
-									sr = (u16) (sr * 100.f / humidmap[index_2d]);
-							}
-
-							if (sr < 4) {
-								if (spflags & MG_VALLEYS_SUPPORT_LUA) {
-									u32 j = index_data;
-									vm->m_area.add_y(em, j, 1);
-									vm->m_data[j] = n_fungal_stone;
-									vm->m_data[index_data] = n_air;
-									air_count++;
-								}
-							} else if (sr < 19) {
-								if (spflags & MG_VALLEYS_SUPPORT_LUA)
-									vm->m_data[index_data] = n_stalactite;
-							} else {
-								if (spflags & MG_VALLEYS_SUPPORT_LUA) {
-									vm->m_data[index_data] = n_air;
-									air_count++;
-								}
-							}
-						}
 					} else if (air_count > 0 && c == c_stone) {
 						// At the cave floor...
 						u32 j = index_data;
@@ -1046,35 +887,6 @@ void MapgenValleys::generateSimpleCaves(s16 max_stone_y)
 							// Waterfalls get out of control fast above ground.
 							if (y < cave_water_height)
 								vm->m_data[j] = n_water;
-						} else if (sr < 33) {
-							if ((spflags & MG_VALLEYS_SUPPORT_LUA) && y < -10) {
-								vm->m_data[index_data] = n_dirt;
-								vm->m_data[j] = n_mushroom_red;
-							}
-						} else if (sr < 63) {
-							if ((spflags & MG_VALLEYS_SUPPORT_LUA) && y < -10) {
-								vm->m_data[index_data] = n_dirt;
-								vm->m_data[j] = n_mushroom_brown;
-							}
-						} else if (sr < 83) {
-							if ((spflags & MG_VALLEYS_SUPPORT_LUA) && y < -25 && air_count > 1) {
-								vm->m_data[index_data] = n_dirt;
-								vm->m_data[j] = n_stem;
-								vm->m_area.add_y(em, j, 1);
-								vm->m_data[j] = n_cap_huge;
-							}
-						} else if (sr < 93) {
-							if ((spflags & MG_VALLEYS_SUPPORT_LUA) && y < -50 && air_count > 2) {
-								vm->m_data[index_data] = n_dirt;
-								vm->m_data[j] = n_stem;
-								vm->m_area.add_y(em, j, 1);
-								vm->m_data[j] = n_stem;
-								vm->m_area.add_y(em, j, 1);
-								vm->m_data[j] = n_cap_giant;
-							}
-						} else if (sr < 243) {
-							if ((spflags & MG_VALLEYS_SUPPORT_LUA) && y < -10)
-								vm->m_data[j] = n_stalagmite;
 						} else if (sr < 1000 && 999 - sr < ceil(-y / 10000.f)) {
 							if (y < lava_max_height)
 								vm->m_data[j] = n_lava;

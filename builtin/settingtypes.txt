@@ -1030,7 +1030,7 @@ mgfractal_np_cave2 (Mapgen fractal cave2 noise parameters) noise_params 0, 12, (
 #    Map generation attributes specific to Mapgen Valleys.
 #    Flags that are not specified in the flag string are not modified from the default.
 #    Flags starting with "no" are used to explicitly disable them.
-mg_valleys_spflags (Valleys C Flags) flags cliffs,lua,rugged cliffs,nocliffs,lua,nolua,rugged,norugged
+mg_valleys_spflags (Valleys C Flags) flags cliffs,rugged cliffs,nocliffs,rugged,norugged
 
 # The altitude at which temperature drops by 20C
 mg_valleys_altitude_chill (Altitude Chill) int 90
