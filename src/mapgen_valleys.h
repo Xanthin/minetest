@@ -70,8 +70,6 @@ struct MapgenValleysParams : public MapgenSpecificParams {
 	NoiseParams np_valley_profile;
 	NoiseParams np_inter_valley_slope;
 	NoiseParams np_inter_valley_fill;
-	//NoiseParams np_v7_caves_1;
-	//NoiseParams np_v7_caves_2;
 	NoiseParams np_simple_caves_1;
 	NoiseParams np_simple_caves_2;
 	NoiseParams np_plant_1;
@@ -113,8 +111,6 @@ public:
 	Noise *noise_valley_profile;
 	Noise *noise_inter_valley_slope;
 	Noise *noise_inter_valley_fill;
-	//Noise *noise_v7_caves_1;
-	//Noise *noise_v7_caves_2;
 	Noise *noise_simple_caves_1;
 	Noise *noise_simple_caves_2;
 	Noise *noise_plant_1;
@@ -185,7 +181,6 @@ public:
 	//void addTopNodes();
 
 	void generateSimpleCaves(s16 max_stone_y);
-	//void generateVmgCaves(s16 max_stone_y);
 };
 
 struct MapgenFactoryValleys : public MapgenFactory {

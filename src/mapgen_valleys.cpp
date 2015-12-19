@@ -35,7 +35,6 @@ See http://www.gnu.org/licenses/gpl-3.0.en.html
 #include "settings.h" // For g_settings
 #include "emerge.h"
 #include "dungeongen.h"
-//#include "cavegen.h"
 #include "treegen.h"
 #include "mg_biome.h"
 #include "mg_ore.h"
@@ -58,7 +57,6 @@ FlagDesc flagdesc_mapgen_valleys[] = {
 	{NULL,        0}
 };
 	//{"profile", MG_VALLEYS_PROFILE},
-	//{"v7caves", MG_VALLEYS_V7_CAVES},
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -79,9 +77,6 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 	this->heatmap         = NULL;
 	this->humidmap        = NULL;
 
-	// This is only here for compatibility with v7 caves.
-	//this->ridge_heightmap = this->heightmap;
-
 	MapgenValleysParams *sp = (MapgenValleysParams *)params->sparams;
 	this->spflags = sp->spflags;
 
@@ -96,8 +91,6 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 
 	//// Terrain noise
 	noise_filler_depth = new Noise(&sp->np_filler_depth,    seed, csize.X, csize.Z);
-	//noise_v7_caves_1 = new Noise(&sp->np_v7_caves_1, seed, csize.X, csize.Y + 2, csize.Z);
-	//noise_v7_caves_2 = new Noise(&sp->np_v7_caves_2, seed, csize.X, csize.Y + 2, csize.Z);
 	noise_simple_caves_1 = new Noise(&sp->np_simple_caves_1, seed, csize.X, csize.Y + 2, csize.Z);
 	noise_simple_caves_2 = new Noise(&sp->np_simple_caves_2, seed, csize.X, csize.Y + 2, csize.Z);
 	noise_cliffs = new Noise(&sp->np_cliffs, seed, csize.X, csize.Z);
@@ -211,8 +204,6 @@ MapgenValleys::~MapgenValleys()
 	delete noise_inter_valley_fill;
 	delete noise_cliffs;
 	delete noise_corr;
-	//delete noise_v7_caves_1;
-	//delete noise_v7_caves_2;
 	delete noise_simple_caves_1;
 	delete noise_simple_caves_2;
 	delete noise_plant_1;
@@ -227,8 +218,6 @@ MapgenValleysParams::MapgenValleysParams()
 	spflags = MG_VALLEYS_SUPPORT_LUA | MG_VALLEYS_CLIFFS | MG_VALLEYS_RUGGED;
 
 	np_filler_depth = NoiseParams(0, 1.2, v3f(150, 150, 150), 261, 3, 0.7, 2.0);
-	//np_v7_caves_1 = NoiseParams(0, 12, v3f(100, 100, 100), 52534, 4, 0.5, 2.0);
-	//np_v7_caves_2 = NoiseParams(0, 12, v3f(100, 100, 100), 10325, 4, 0.5, 2.0);
 	np_simple_caves_1 = NoiseParams(0, 1, v3f(64, 64, 64), -8402, 3, 0.5, 2.0);
 	np_simple_caves_2 = NoiseParams(0, 1, v3f(64, 64, 64), 3944, 3, 0.5, 2.0);
 	np_cliffs = NoiseParams(0, 1, v3f(750, 750, 750), 8445, 5, 1.0, 2.0);
@@ -250,8 +239,6 @@ void MapgenValleysParams::readParams(const Settings *settings)
 	settings->getFlagStrNoEx("mg_valleys_spflags", spflags, flagdesc_mapgen_valleys);
 
 	settings->getNoiseParams("mg_valleys_np_filler_depth",    np_filler_depth);
-	//settings->getNoiseParams("mg_valleys_np_v7_caves_1",    np_v7_caves_1);
-	//settings->getNoiseParams("mg_valleys_np_v7_caves_2",    np_v7_caves_2);
 	settings->getNoiseParams("mg_valleys_np_simple_caves_1",    np_simple_caves_1);
 	settings->getNoiseParams("mg_valleys_np_simple_caves_2",    np_simple_caves_2);
 	
@@ -288,8 +275,6 @@ void MapgenValleysParams::writeParams(Settings *settings) const
 	settings->setFlagStr("mg_valleys_spflags", spflags, flagdesc_mapgen_valleys, U32_MAX);
 
 	settings->setNoiseParams("mg_valleys_np_filler_depth",    np_filler_depth);
-	//settings->setNoiseParams("mg_valleys_np_v7_caves_1",    np_v7_caves_1);
-	//settings->setNoiseParams("mg_valleys_np_v7_caves_2",    np_v7_caves_2);
 	settings->setNoiseParams("mg_valleys_np_simple_caves_1",    np_simple_caves_1);
 	settings->setNoiseParams("mg_valleys_np_simple_caves_2",    np_simple_caves_2);
 	
@@ -359,13 +344,8 @@ void MapgenValleys::makeChunk(BlockMakeData *data)
 	if (spflags & MG_VALLEYS_SUPPORT_LUA)
 		water_plants(heatmap, humidmap);
 
-	if (flags & MG_CAVES) {
-		//if (spflags & MG_VALLEYS_V7_CAVES)
-		//	generateCaves(stone_surface_max_y);
-		//else
-			generateSimpleCaves(stone_surface_max_y);
-			//generateVmgCaves(stone_surface_max_y);
-	}
+	if (flags & MG_CAVES)
+		generateSimpleCaves(stone_surface_max_y);
 
 	if ((flags & MG_DUNGEONS) && node_max.Y < 50 && (stone_surface_max_y >= node_min.Y)) {
 		DungeonParams dp;
@@ -523,13 +503,8 @@ void MapgenValleys::calculateNoise()
 	noise_plant_1->perlinMap2D(x, z);
 
 	if (flags & MG_CAVES) {
-		//if (spflags & MG_VALLEYS_V7_CAVES) {
-		//	noise_v7_caves_1->perlinMap3D(x, y, z);
-		//	noise_v7_caves_2->perlinMap3D(x, y, z);
-		//} else {
-			noise_simple_caves_1->perlinMap3D(x, y, z);
-			noise_simple_caves_2->perlinMap3D(x, y, z);
-		//}
+		noise_simple_caves_1->perlinMap3D(x, y, z);
+		noise_simple_caves_2->perlinMap3D(x, y, z);
 	}
 
 	mapgen_profiler->avg("noisemaps", tcn.stop() / 1000.f);
@@ -1115,37 +1090,3 @@ void MapgenValleys::generateSimpleCaves(s16 max_stone_y)
 			}
 	}
 }
-
-
-#if 0
-void MapgenValleys::generateCaves(s16 max_stone_y)
-{
-	if (max_stone_y >= node_min.Y) {
-		u32 index   = 0;
-
-		for (s16 z = node_min.Z; z <= node_max.Z; z++)
-		for (s16 y = node_min.Y - 1; y <= node_max.Y + 1; y++) {
-			u32 i = vm->m_area.index(node_min.X, y, z);
-			for (s16 x = node_min.X; x <= node_max.X; x++, i++, index++) {
-				float d1 = contour(noise_v7_caves_1->result[index]);
-				float d2 = contour(noise_v7_caves_2->result[index]);
-				if (d1 * d2 > 0.3) {
-					content_t c = vm->m_data[i].getContent();
-					if (!ndef->get(c).is_ground_content || c == CONTENT_AIR)
-						continue;
-
-					vm->m_data[i] = MapNode(CONTENT_AIR);
-				}
-			}
-		}
-	}
-
-	PseudoRandom ps(blockseed + 21343);
-	u32 bruises_count = (ps.range(1, 4) == 1) ? ps.range(1, 2) : 0;
-	for (u32 i = 0; i < bruises_count; i++) {
-		CaveValleys cave(this, &ps);
-		cave.makeCave(node_min, node_max, max_stone_y);
-	}
-}
-#endif
-
