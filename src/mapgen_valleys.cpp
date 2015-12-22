@@ -120,7 +120,6 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 	c_water_source         = ndef->getId("mapgen_water_source");
 	c_lava_source          = ndef->getId("mapgen_lava_source");
 	c_desert_stone         = ndef->getId("mapgen_desert_stone");
-	c_ice                  = ndef->getId("mapgen_ice");
 	c_sandstone            = ndef->getId("mapgen_sandstone");
 	c_river_water_source   = ndef->getId("mapgen_river_water_source");
 	c_sand                 = ndef->getId("mapgen_sand");
@@ -133,8 +132,6 @@ MapgenValleys::MapgenValleys(int mapgenid, MapgenParams *params, EmergeManager *
 
 	c_dirt                 = ndef->getId("mapgen_dirt");
 
-	if (c_ice == CONTENT_IGNORE)
-		c_ice = CONTENT_AIR;
 	if (c_mossycobble == CONTENT_IGNORE)
 		c_mossycobble = c_cobble;
 	if (c_stair_cobble == CONTENT_IGNORE)
@@ -210,7 +207,7 @@ void MapgenValleysParams::readParams(const Settings *settings)
 	if (!settings->getS16NoEx("mg_valleys_river_size", river_size))
 		river_size = 5;  // How wide to make rivers.
 	if (!settings->getS16NoEx("mg_valleys_river_depth", river_depth))
-		river_depth = 5;  // How deep to carve river channels.
+		river_depth = 4;  // How deep to carve river channels.
 	if (!settings->getS16NoEx("mg_valleys_altitude_chill", altitude_chill))
 		altitude_chill = 90;  // The altitude at which temperature drops by 20C.
 	if (!settings->getS16NoEx("mg_valleys_lava_max_height", lava_max_height))
@@ -346,9 +343,6 @@ void MapgenValleys::makeChunk(BlockMakeData *data)
 		dgen.generate(blockseed, full_node_min, full_node_max);
 	}
 
-	// Correct problems with the rivers.
-	fixRivers(csize.X, csize.Z, heightmap);
-
 	// Generate the registered decorations
 	m_emerge->decomgr->placeAllDecos(this, blockseed, node_min, node_max);
 
@@ -379,47 +373,6 @@ void MapgenValleys::calcBiomes(s16 sx, s16 sy, float *heat_map, float *humidity_
 		Biome *biome = bmgr->getBiome(heat_map[index], humidity_map[index], height_map[index]);
 		biomeid_map[index] = biome->index;
 	}
-}
-
-
-void MapgenValleys::fixRivers(s16 sx, s16 sy, s16 *height_map)
-{
-	MapNode n_air(CONTENT_AIR);
-
-	s16 index = 0;
-	for (s16 z = node_min.Z; z <= node_max.Z; z++)
-		for (s16 x = node_min.X; x <= node_max.X; x++, index++) {
-			s16 river_y = (s16) noise_rivers->result[index];
-			if (river_y > 0 && river_y >= node_min.Y && river_y <= node_max.Y) {
-				// Try to eliminate rivers floating over cave openings.
-				//  There's no practical way to fill caves, since they span
-				//   chunks, so this is about the best we can do.
-				bool supported = false;
-				for (s16 y = river_y; y >= node_min.Y; y--) {
-					u32 i = vm->m_area.index(x, y, z);
-					content_t c = vm->m_data[i].getContent();
-					if (c == CONTENT_AIR)
-						break;
-					if (c != c_river_water_source) {
-						supported = true;
-						break;
-					}
-				}
-				if (!supported) {
-					for (s16 y = river_y; y >= node_min.Y; y--) {
-						u32 i = vm->m_area.index(x, y, z);
-						content_t c = vm->m_data[i].getContent();
-						if (c == c_river_water_source)
-							vm->m_data[i] = n_air;
-						else
-							break;
-					}
-				}
-
-				if (!supported)
-					continue;
-			}
-		}
 }
 
 
