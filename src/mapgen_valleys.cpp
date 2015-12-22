@@ -417,7 +417,7 @@ void MapgenValleys::calculateNoise()
 	}
 
 	float mount, valley, rivers, cliffs, corr;
-	cliffs = corr = 0.0;
+	valley = cliffs = corr = 0.0;
 	u32 index = 0;
 	for (s16 zi = node_min.Z; zi <= node_max.Z; zi++)
 	for (s16 xi = node_min.X; xi <= node_max.X; xi++, index++) {
@@ -501,7 +501,7 @@ float MapgenValleys::baseGroundFromNoise(s16 x, s16 z, float valley_depth, float
 		else
 			mount += delta * 0.66;
 
-		// Use yet another noise to make the mountains look more rugged.
+		// Use yet another noise to make the heights look more rugged.
 		if ((spflags & MG_VALLEYS_RUGGED) && mount > water_level && fabs(inter_valley_slope * inter_valley_fill) < 0.3)
 			mount += (delta / fabs(delta)) * pow(fabs(delta), 0.5) * fabs(sin(corr));
 	}
@@ -525,6 +525,7 @@ float MapgenValleys::humidityByTerrain(float humidity, float mount, float valley
 }
 
 
+// This is very slow.
 Biome *MapgenValleys::getBiomeAtPoint(v3s16 p)
 {
 	float heat = NoisePerlin2D(&noise_heat->np, p.X, p.Z, seed) + NoisePerlin2D(&noise_heat_blend->np, p.X, p.Z, seed);
@@ -535,7 +536,7 @@ Biome *MapgenValleys::getBiomeAtPoint(v3s16 p)
 	float valley_depth = NoisePerlin2D(&noise_valley_depth->np, p.X, p.Z, seed);
 	float valley_profile = NoisePerlin2D(&noise_valley_profile->np, p.X, p.Z, seed);
 	float inter_valley_slope = NoisePerlin2D(&noise_inter_valley_slope->np, p.X, p.Z, seed);
-	float valley;
+	float valley = 0.0;
 	float inter_valley_fill = NoisePerlin2D(&noise_inter_valley_fill->np, p.X, p.Z, seed);
 
 	float cliffs = 0.0;
@@ -554,6 +555,7 @@ Biome *MapgenValleys::getBiomeAtPoint(v3s16 p)
 
 	return bmgr->getBiome(heat, humidity, groundlevel);
 }
+
 
 int MapgenValleys::getGroundLevelAtPoint(v2s16 p)
 {
@@ -593,8 +595,6 @@ int MapgenValleys::generateTerrain()
 	MapNode n_water(c_water_source);
 	MapNode n_river_water(c_river_water_source);
 	MapNode n_sand(c_sand);
-
-	PseudoRandom ps(blockseed + 21343);
 
 	v3s16 em = vm->m_area.getExtent();
 	s16 surface_min_y = MAX_MAP_GENERATION_LIMIT;
@@ -807,23 +807,24 @@ void MapgenValleys::generateSimpleCaves(s16 max_stone_y)
 	u16 sr = 1000;
 
 	if (max_stone_y >= node_min.Y) {
+		u32 index_2d = 0;
+		u32 index_3d = 0;
 		for (s16 z = node_min.Z; z <= node_max.Z; z++)
-			for (s16 x = node_min.X; x <= node_max.X; x++) {
+			for (s16 x = node_min.X; x <= node_max.X; x++, index_2d++) {
+				index_3d = (z - node_min.Z) * csize.X * (csize.Y + 2) + (csize.Y + 1) * csize.X + (x - node_min.X);
 				content_t ca = CONTENT_IGNORE;
 				bool underground = false;
 				u16 air_count = 0;
-				// Dig caves on down loop to check for stone above.
 				u32 index_data = vm->m_area.index(x, node_max.Y + 1, z);
-				for (s16 y = node_max.Y+1; y >= node_min.Y-1; y--) {
-					u32 index_2d = (z - node_min.Z) * csize.X + (x - node_min.X);
-					u32 index_3d = (z - node_min.Z) * csize.X * (csize.Y + 2) + (y - node_min.Y + 1) * csize.X + (x - node_min.X);
 
-					bool n1 = (fabs(noise_simple_caves_1->result[index_3d]) < 0.07);
-					bool n2 = (fabs(noise_simple_caves_2->result[index_3d]) < 0.07);
-
+				// Dig caves on down loop to check for stone above.
+				for (s16 y = node_max.Y+1; y >= node_min.Y-1; y--, index_3d -= csize.X) {
 					content_t c = vm->m_data[index_data].getContent();
 					if (ca == c_stone || y < -10)
 						underground = true;
+
+					bool n1 = (fabs(noise_simple_caves_1->result[index_3d]) < 0.07);
+					bool n2 = (fabs(noise_simple_caves_2->result[index_3d]) < 0.07);
 
 					if (n1 && n2 && c != CONTENT_AIR && c != c_water_source) {
 							vm->m_data[index_data] = n_air;
@@ -842,7 +843,7 @@ void MapgenValleys::generateSimpleCaves(s16 max_stone_y)
 							vm->m_data[index_data] = MapNode(biome->c_filler);
 							underground = true;
 						} else if (sr < 3) {
-							// Waterfalls get out of control fast above ground.
+							// Waterfalls may get out of control above ground.
 							if (y < cave_water_height)
 								vm->m_data[j] = n_water;
 						} else if (sr < 1000 && 999 - sr < ceil(-y / 10000.f)) {
