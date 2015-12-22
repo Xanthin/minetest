@@ -183,15 +183,15 @@ MapgenValleysParams::MapgenValleysParams()
 	np_simple_caves_1 = NoiseParams(0, 1, v3f(64, 64, 64), -8402, 3, 0.5, 2.0);
 	np_simple_caves_2 = NoiseParams(0, 1, v3f(64, 64, 64), 3944, 3, 0.5, 2.0);
 	np_cliffs = NoiseParams(0, 1, v3f(750, 750, 750), 8445, 5, 1.0, 2.0);
-	np_corr = NoiseParams(0, 1, v3f(32, 32, 32), -3536, 4, 1.0, 2.0);
+	np_corr = NoiseParams(0, 1, v3f(40, 40, 40), -3536, 4, 1.0, 2.0);
 
 	// vmg noises
 	np_terrain_height = NoiseParams(-10, 50, v3f(1024, 1024, 1024), 5202, 6, 0.4, 2.0);
-	np_rivers = NoiseParams(0, 1, v3f(512, 512, 512), -6050, 5, 0.6, 2.0);
-	np_valley_depth = NoiseParams(5, 5, v3f(1024, 1024, 1024), -1914, 1, 1.0, 2.0);
+	np_rivers = NoiseParams(0, 1, v3f(256, 256, 256), -6050, 5, 0.6, 2.0);
+	np_valley_depth = NoiseParams(5, 4, v3f(512, 512, 512), -1914, 1, 1.0, 2.0);
 	np_valley_profile = NoiseParams(0.6, 0.5, v3f(512, 512, 512), 777, 1, 1.0, 2.0);
 	np_inter_valley_slope = NoiseParams(0.5, 0.5, v3f(128, 128, 128), 746, 1, 1.0, 2.0);
-	np_inter_valley_fill = NoiseParams(0, 1, v3f(512, 512, 512), 1993, 6, 0.8, 2.0);
+	np_inter_valley_fill = NoiseParams(0, 1, v3f(256, 256, 256), 1993, 6, 0.8, 2.0);
 }
 
 

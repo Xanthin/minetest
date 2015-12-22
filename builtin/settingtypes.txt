@@ -1081,7 +1081,7 @@ mg_valleys_np_terrain_height (Terrain Height) noise_params -10, 50, (1024, 1024,
 mg_valleys_np_valley_depth (Valley Depth) noise_params 5, 4, (512, 512, 512), -1914, 1, 1.0, 2.0
 
 # Slope and fill work together to modify the heights
-mg_valleys_np_inter_valley_fill (Valley Fill) noise_params 0, 1, (768, 768, 768), 1993, 6, 0.8, 2.0
+mg_valleys_np_inter_valley_fill (Valley Fill) noise_params 0, 1, (256, 256, 256), 1993, 6, 0.8, 2.0
 
 # Amplifies the valleys
 mg_valleys_np_valley_profile (Valley Profile) noise_params 0.6, 0.5, (512, 512, 512), 777, 1, 1.0, 2.0
